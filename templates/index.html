@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Catálogo | Sport Store</title>
+    <!-- Tailwind CSS v4 via CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <!-- FontAwesome para ícones -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-slate-950 text-slate-100 font-sans min-h-screen flex flex-col selection:bg-emerald-500 selection:text-white">
+
+    <!-- Header Esportivo -->
+    <header class="bg-slate-900 border-b border-slate-800 sticky top-0 z-50 px-6 py-4 flex justify-between items-center shadow-lg">
+        <!-- Logo clicável que direciona para a página principal do catálogo -->
+        <a href="/" class="flex items-center gap-3 group cursor-pointer">
+            <div class="bg-emerald-500 text-slate-950 p-2 rounded-lg font-black tracking-wider text-lg shadow-md shadow-emerald-500/20 group-hover:scale-105 transition">
+                <i class="fa-solid fa-shirt"></i> FC
+            </div>
+            <span class="text-xl font-black tracking-wider uppercase italic text-white group-hover:text-emerald-400 transition">Sport <span class="text-emerald-400 group-hover:text-white transition">Store</span></span>
+        </a>
+    </header>
+
+    <!-- Conteúdo Principal -->
+    <main class="max-w-7xl mx-auto px-4 py-12 flex-1 w-full">
+        <div class="flex justify-between items-center mb-8 border-b border-slate-800 pb-4">
+            <div>
+                <h2 class="text-2xl md:text-3xl font-black uppercase italic tracking-tight text-white">Camisas Disponíveis</h2>
+                <p class="text-xs text-slate-400 mt-1 uppercase tracking-widest">Linha Premium Tailandesa 1:1</p>
+            </div>
+        </div>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {% for shirt in shirts %}
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl shadow-xl overflow-hidden flex flex-col group hover:border-emerald-500/50 transition-all duration-300">
+
+                <!-- Imagem do Produto com Galeria e Setas -->
+                <div class="relative block overflow-hidden aspect-square bg-slate-950 group/img">
+                    <a href="/shirt/{{ shirt.id }}" class="block w-full h-full">
+                        <img id="main-image-{{ shirt.id }}" src="{{ shirt.images[0].image_url if shirt.images else '' }}" alt="{{ shirt.title }}" class="w-full h-full object-cover group-hover/img:scale-105 transition-transform duration-500">
+                    </a>
+                    
+                    <div class="absolute top-3 left-3 bg-emerald-500 text-slate-950 text-[10px] font-black uppercase px-2.5 py-1 rounded-md tracking-wider shadow-md z-10 pointer-events-none">
+                        Tailandesa 1:1
+                    </div>
+
+                    <!-- Botões de Seta (Esquerda / Direita) no Catálogo -->
+                    {% if shirt.images and shirt.images|length > 1 %}
+                    <button type="button" onclick="event.preventDefault(); mudarFotoCatalogo('{{ shirt.id }}', -1)" class="absolute left-2 top-1/2 -translate-y-1/2 bg-slate-950/80 hover:bg-emerald-500 hover:text-slate-950 text-white w-8 h-8 rounded-full flex items-center justify-center transition border border-slate-700/80 shadow-lg opacity-0 group-hover/img:opacity-100 cursor-pointer z-20">
+                        <i class="fa-solid fa-chevron-left text-xs"></i>
+                    </button>
+                    <button type="button" onclick="event.preventDefault(); mudarFotoCatalogo('{{ shirt.id }}', 1)" class="absolute right-2 top-1/2 -translate-y-1/2 bg-slate-950/80 hover:bg-emerald-500 hover:text-slate-950 text-white w-8 h-8 rounded-full flex items-center justify-center transition border border-slate-700/80 shadow-lg opacity-0 group-hover/img:opacity-100 cursor-pointer z-20">
+                        <i class="fa-solid fa-chevron-right text-xs"></i>
+                    </button>
+                    {% endif %}
+                </div>
+
+                <!-- Informações -->
+                <div class="p-6 flex flex-col flex-grow justify-between">
+                    <div>
+                        <a href="/shirt/{{ shirt.id }}">
+                            <h3 class="font-black text-lg text-white mb-3 hover:text-emerald-400 transition uppercase italic line-clamp-2">
+                                {{ shirt.title }}
+                            </h3>
+                        </a>
+
+                        <!-- Bloco de Preço no Card -->
+                        <div class="mb-4 bg-slate-950/50 p-3 rounded-xl border border-slate-800/80">
+                            <div class="flex items-baseline gap-2">
+                                <span class="text-2xl font-black text-emerald-400 tracking-tight">
+                                    {{ shirt.preco_pix }}
+                                </span>
+                                <span class="bg-emerald-500/10 text-emerald-400 text-[10px] font-black uppercase px-1.5 py-0.5 rounded border border-emerald-500/20">
+                                    10% OFF NO PIX
+                                </span>
+                            </div>
+                            <div class="text-[11px] text-slate-400 mt-0.5">
+                                ou 6x de <span class="text-slate-200 font-semibold">{{ shirt.parcela_6x }}</span> sem juros
+                            </div>
+                        </div>
+
+                        <!-- Tamanhos Estilizados -->
+                        <div class="mb-5">
+                            <span class="text-[10px] uppercase font-bold tracking-widest text-slate-400 block mb-2">Tamanhos:</span>
+                            <div class="flex flex-wrap gap-2">
+                                {% for tam in shirt.todos_tamanhos %}
+                                    {% if tam in shirt.disponiveis %}
+                                        <div class="w-9 h-9 rounded-lg bg-slate-800 border border-emerald-500/60 text-emerald-400 font-black text-xs flex items-center justify-center shadow-sm">
+                                            {{ tam }}
+                                        </div>
+                                    {% else %}
+                                        <div class="w-9 h-9 rounded-lg bg-slate-950 border border-slate-800 text-slate-700 font-bold text-xs flex items-center justify-center opacity-40 line-through">
+                                            {{ tam }}
+                                        </div>
+                                    {% endif %}
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Botão de Ação -->
+                    <div class="pt-4 border-t border-slate-800 flex items-center gap-3">
+                        <a href="/shirt/{{ shirt.id }}" class="flex-1 text-center bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs uppercase font-extrabold tracking-wider py-3 px-3 rounded-xl transition border border-slate-700">
+                            Ver Detalhes
+                        </a>
+                        <a href="https://wa.me/55SEUNUMERO?text=Olá! Tenho interesse na camisa: {{ shirt.title }}" target="_blank" class="bg-emerald-500 hover:bg-emerald-400 text-slate-950 px-4 py-3 rounded-xl text-sm font-black transition shadow-lg shadow-emerald-500/20 flex items-center justify-center">
+                            <i class="fa-brands fa-whatsapp text-lg"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+            {% else %}
+            <div class="col-span-3 text-center py-20 bg-slate-900 border border-slate-800 rounded-3xl">
+                <i class="fa-solid fa-shirt text-slate-600 text-5xl mb-4"></i>
+                <p class="text-slate-400 font-semibold uppercase tracking-wider text-sm">Nenhuma camisa cadastrada no momento.</p>
+            </div>
+            {% endfor %}
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-slate-900 border-t border-slate-800 text-center py-6 text-xs text-slate-500 uppercase tracking-widest mt-12">
+        &copy; 2026 Sport Store. Todos os direitos reservados.
+    </footer>
+
+    <script>
+        // Dicionário para controlar o índice da foto atual de cada camisa no catálogo
+        const galeriasCatalogo = {
+            {% for shirt in shirts %}
+                "{{ shirt.id }}": [
+                    {% for img in shirt.images %}
+                        "{{ img.image_url }}"{% if not loop.last %},{% endif %}
+                    {% endfor %}
+                ]{% if not loop.last %},{% endif %}
+            {% endfor %}
+        };
+
+        const indicesAtuaisCatalogo = {};
+
+        function mudarFotoCatalogo(shirtId, direcao) {
+            const imagens = galeriasCatalogo[shirtId];
+            if (!imagens || imagens.length <= 1) return;
+
+            if (typeof indicesAtuaisCatalogo[shirtId] === 'undefined') {
+                indicesAtuaisCatalogo[shirtId] = 0;
+            }
+
+            indicesAtuaisCatalogo[shirtId] += direcao;
+
+            if (indicesAtuaisCatalogo[shirtId] < 0) {
+                indicesAtuaisCatalogo[shirtId] = imagens.length - 1;
+            } else if (indicesAtuaisCatalogo[shirtId] >= imagens.length) {
+                indicesAtuaisCatalogo[shirtId] = 0;
+            }
+
+            const imgElement = document.getElementById(`main-image-${shirtId}`);
+            if (imgElement) {
+                imgElement.src = imagens[indicesAtuaisCatalogo[shirtId]];
+            }
+        }
+    </script>
+
+</body>
+</html>

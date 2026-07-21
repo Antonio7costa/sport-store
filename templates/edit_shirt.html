@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Editar Camisa</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+</head>
+<body class="bg-gray-100 font-sans">
+    <header class="bg-slate-900 text-white p-4 shadow-md flex justify-between items-center">
+        <h1 class="text-xl font-bold">Painel Admin - Editar</h1>
+        <a href="/admin" class="text-sm bg-slate-800 px-3 py-1.5 rounded hover:bg-slate-700">Voltar ao Painel</a>
+    </header>
+
+    <main class="max-w-4xl mx-auto p-6">
+        <div class="bg-white p-6 rounded-lg shadow-md">
+            <h2 class="text-lg font-bold mb-4 text-slate-800">Editando: {{ shirt.title }}</h2>
+            <form method="POST" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <input type="text" name="title" value="{{ shirt.title }}" placeholder="Nome" required class="border p-2 rounded">
+                <input type="text" name="category" placeholder="Categoria (Opcional)" class="border p-2 rounded">
+                <input type="text" name="price" value="{{ shirt.price }}" placeholder="Preço" required class="border p-2 rounded">
+                <div class="md:col-span-2 border p-4 rounded bg-gray-50">
+                    <span class="text-sm font-semibold text-slate-700 block mb-3">Quantidade em estoque por tamanho:</span>
+                    <div class="grid grid-cols-5 gap-3">
+                        <div>
+                            <label class="block text-xs font-bold text-gray-600 mb-1">P</label>
+                            <input type="number" name="stock_p" value="{{ shirt.stock_p if shirt else 0 }}" min="0" class="w-full border p-2 rounded text-center">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-600 mb-1">M</label>
+                            <input type="number" name="stock_m" value="{{ shirt.stock_m if shirt else 0 }}" min="0" class="w-full border p-2 rounded text-center">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-600 mb-1">G</label>
+                            <input type="number" name="stock_g" value="{{ shirt.stock_g if shirt else 0 }}" min="0" class="w-full border p-2 rounded text-center">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-600 mb-1">GG</label>
+                            <input type="number" name="stock_gg" value="{{ shirt.stock_gg if shirt else 0 }}" min="0" class="w-full border p-2 rounded text-center">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-600 mb-1">XG</label>
+                            <input type="number" name="stock_xg" value="{{ shirt.stock_xg if shirt else 0 }}" min="0" class="w-full border p-2 rounded text-center">
+                        </div>
+                    </div>
+                </div>
+                <div class="md:col-span-2">
+                    <label class="block text-xs font-bold text-gray-400 mb-1">Links das Fotos (Cole uma URL por linha):</label>
+                    <textarea name="image_urls" rows="4" spellcheck="false" autocomplete="off" placeholder="Cole uma URL por linha" class="w-full bg-slate-950 border border-slate-800 p-2.5 rounded-xl text-white text-sm">{% for img in shirt.images %}{{ img.image_url }}{% if not loop.last %}&#10;{% endif %}{% endfor %}</textarea>
+                </div>
+                <button type="submit" class="bg-indigo-600 text-white p-2 rounded font-semibold hover:bg-indigo-700 md:col-span-2">Salvar Alterações</button>
+            </form>
+        </div>
+    </main>
+</body>
+</html>
