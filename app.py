@@ -38,6 +38,14 @@ class ShirtImage(db.Model):
     
 with app.app_context():
     db.create_all()
+    
+    # Cria o admin automaticamente se ele não existir
+    admin_existente = User.query.filter_by(username='admin').first()
+    if not admin_existente:
+        senha_admin = os.environ.get('ADMIN_PASSWORD', 'sua-senha-padrao')
+        novo_admin = User(username='admin', password=generate_password_hash(senha_admin))
+        db.session.add(novo_admin)
+        db.session.commit()
 
 @login_manager.user_loader
 def load_user(user_id):
