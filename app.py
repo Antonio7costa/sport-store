@@ -235,6 +235,20 @@ def edit_shirt(id):
         
     return render_template('edit_shirt.html', shirt=shirt)
 
+@app.route('/criar-admin')
+def criar_admin():
+    # Verifica se já existe um admin para não duplicar
+    admin_existente = User.query.filter_by(username='admin').first()
+    if admin_existente:
+        return "O usuário admin já existe!"
+    
+    # Cria o admin usando a senha que você configurou nas variáveis de ambiente do Render
+    senha_admin = os.environ.get('ADMIN_PASSWORD', 'sua-senha-padrao')
+    novo_admin = User(username='admin', password=generate_password_hash(senha_admin))
+    db.session.add(novo_admin)
+    db.session.commit()
+    return f"Usuário admin criado com sucesso! Senha usada: {senha_admin}"
+
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()
