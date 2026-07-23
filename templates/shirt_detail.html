@@ -2,6 +2,7 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ shirt.title }} | FC Catálogo</title>
     <!-- Tailwind CSS v4 via CDN -->
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
@@ -11,53 +12,53 @@
 <body class="bg-slate-950 text-slate-100 font-sans min-h-screen flex flex-col selection:bg-emerald-500 selection:text-white">
 
     <!-- Header Esportivo -->
-    <header class="bg-slate-900 border-b border-slate-800 sticky top-0 z-50 px-6 py-4 flex justify-between items-center shadow-lg">
+    <header class="bg-slate-900 border-b border-slate-800 sticky top-0 z-50 px-4 md:px-6 py-3 md:py-4 flex justify-between items-center shadow-lg">
         <!-- Logo clicável que direciona para a página principal do catálogo -->
-        <a href="/" class="flex items-center gap-3 group cursor-pointer">
-            <div class="bg-emerald-500 text-slate-950 p-2 rounded-lg font-black tracking-wider text-lg shadow-md shadow-emerald-500/20 group-hover:scale-105 transition">
+        <a href="/" class="flex items-center gap-2.5 group cursor-pointer">
+            <div class="bg-emerald-500 text-slate-950 p-2 rounded-lg font-black tracking-wider text-base shadow-md shadow-emerald-500/20 group-hover:scale-105 transition">
                 <i class="fa-solid fa-shirt"></i> FC
             </div>
-            <span class="text-xl font-black tracking-wider uppercase italic text-white group-hover:text-emerald-400 transition">Sport <span class="text-emerald-400 group-hover:text-white transition">Store</span></span>
+            <span class="text-lg md:text-xl font-black tracking-wider uppercase italic text-white group-hover:text-emerald-400 transition">Sport <span class="text-emerald-400 group-hover:text-white transition">Store</span></span>
         </a>
         
         <!-- Botão de Voltar ao Catálogo -->
-        <a href="/" class="text-xs uppercase font-bold tracking-widest bg-slate-800 hover:bg-slate-700 text-slate-200 px-4 py-2.5 rounded-lg transition-all flex items-center gap-2 border border-slate-700">
-            <i class="fa-solid fa-arrow-left"></i> Voltar ao Catálogo
+        <a href="/" class="text-xs uppercase font-bold tracking-widest bg-slate-800 hover:bg-slate-700 text-slate-200 px-3.5 py-2 md:px-4 md:py-2.5 rounded-lg transition-all flex items-center gap-2 border border-slate-700">
+            <i class="fa-solid fa-arrow-left"></i> <span class="hidden sm:inline">Voltar ao Catálogo</span><span class="sm:hidden">Voltar</span>
         </a>
     </header>
 
     <!-- Conteúdo Principal / Detalhes do Produto -->
-    <main class="flex-1 max-w-6xl mx-auto px-4 py-12 flex items-center justify-center w-full">
-        <div class="bg-slate-900 border border-slate-800 rounded-3xl shadow-2xl overflow-hidden grid grid-cols-1 md:grid-cols-2 gap-8 p-8 md:p-12 w-full max-w-5xl">
+    <main class="flex-1 w-full max-w-5xl mx-auto px-3 sm:px-4 py-4 md:py-8 flex items-center justify-center">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl md:rounded-3xl shadow-2xl overflow-hidden grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8 p-4 sm:p-6 md:p-10 w-full">
             
             <!-- Imagem do Produto com Galeria e Setas -->
-            <div class="flex flex-col gap-4">
-                <div class="relative group bg-slate-950 rounded-2xl overflow-hidden border border-slate-800 flex items-center justify-center aspect-square shadow-inner">
+            <div class="flex flex-col gap-3 md:gap-4 w-full">
+                <div class="relative group bg-slate-950 rounded-xl md:rounded-2xl overflow-hidden border border-slate-800 flex items-center justify-center aspect-square shadow-inner w-full">
                     
                     <!-- Imagem Principal dinâmica -->
                     <img id="main-image" src="{{ shirt.images[0].image_url if shirt.images else '' }}" class="w-full h-full object-cover transition-transform duration-500" alt="{{ shirt.title }}">
                     
                     <!-- Selo -->
-                    <div class="absolute top-4 left-4 bg-emerald-500 text-slate-950 text-xs font-black uppercase px-3 py-1 rounded-full tracking-wider shadow-md z-10">
+                    <div class="absolute top-3 left-3 md:top-4 md:left-4 bg-emerald-500 text-slate-950 text-[10px] md:text-xs font-black uppercase px-2.5 py-1 rounded-full tracking-wider shadow-md z-10">
                         Linha Premium
                     </div>
 
                     <!-- Botões de Seta (Esquerda / Direita) -->
                     {% if shirt.images and shirt.images|length > 1 %}
-                    <button type="button" onclick="mudarFoto(-1)" class="absolute left-3 top-1/2 -translate-y-1/2 bg-slate-950/80 hover:bg-emerald-500 hover:text-slate-950 text-white w-10 h-10 rounded-full flex items-center justify-center transition border border-slate-700 shadow-lg opacity-80 group-hover:opacity-100 cursor-pointer">
-                        <i class="fa-solid fa-chevron-left text-sm"></i>
+                    <button type="button" onclick="mudarFoto(-1)" class="absolute left-2.5 top-1/2 -translate-y-1/2 bg-slate-950/80 hover:bg-emerald-500 hover:text-slate-950 text-white w-8 h-8 md:w-10 md:h-10 rounded-full flex items-center justify-center transition border border-slate-700 shadow-lg opacity-80 group-hover:opacity-100 cursor-pointer">
+                        <i class="fa-solid fa-chevron-left text-xs md:text-sm"></i>
                     </button>
-                    <button type="button" onclick="mudarFoto(1)" class="absolute right-3 top-1/2 -translate-y-1/2 bg-slate-950/80 hover:bg-emerald-500 hover:text-slate-950 text-white w-10 h-10 rounded-full flex items-center justify-center transition border border-slate-700 shadow-lg opacity-80 group-hover:opacity-100 cursor-pointer">
-                        <i class="fa-solid fa-chevron-right text-sm"></i>
+                    <button type="button" onclick="mudarFoto(1)" class="absolute right-2.5 top-1/2 -translate-y-1/2 bg-slate-950/80 hover:bg-emerald-500 hover:text-slate-950 text-white w-8 h-8 md:w-10 md:h-10 rounded-full flex items-center justify-center transition border border-slate-700 shadow-lg opacity-80 group-hover:opacity-100 cursor-pointer">
+                        <i class="fa-solid fa-chevron-right text-xs md:text-sm"></i>
                     </button>
                     {% endif %}
                 </div>
 
                 <!-- Miniaturas Abaixo -->
                 {% if shirt.images and shirt.images|length > 1 %}
-                <div class="flex gap-3 overflow-x-auto pb-2">
+                <div class="flex gap-2.5 overflow-x-auto pb-1">
                     {% for img in shirt.images %}
-                    <button type="button" onclick="selecionarFoto({{ loop.index0 }})" class="thumbnail-btn w-20 h-20 rounded-xl overflow-hidden border-2 {% if loop.first %}border-emerald-500{% else %}border-slate-800{% endif %} hover:border-emerald-400 transition shrink-0 bg-slate-950 focus:outline-none cursor-pointer">
+                    <button type="button" onclick="selecionarFoto({{ loop.index0 }})" class="thumbnail-btn w-16 h-16 md:w-20 md:h-20 rounded-xl overflow-hidden border-2 {% if loop.first %}border-emerald-500{% else %}border-slate-800{% endif %} hover:border-emerald-400 transition shrink-0 bg-slate-950 focus:outline-none cursor-pointer">
                         <img src="{{ img.image_url }}" class="w-full h-full object-cover">
                     </button>
                     {% endfor %}
@@ -66,64 +67,64 @@
             </div>
 
             <!-- Informações do Produto -->
-            <div class="flex flex-col justify-between">
+            <div class="flex flex-col justify-between w-full">
                 <div>
-                    <div class="flex items-center gap-2 text-emerald-400 text-xs font-bold uppercase tracking-widest mb-2">
+                    <div class="flex items-center gap-2 text-emerald-400 text-[11px] md:text-xs font-bold uppercase tracking-widest mb-1.5 md:mb-2">
                         <i class="fa-solid fa-star"></i> Camisa Tailandesa 1:1 / Linha Premium
                     </div>
                     
-                    <h1 class="text-2xl md:text-3xl font-black text-white tracking-tight leading-tight mb-4 uppercase italic">
+                    <h1 class="text-xl sm:text-2xl md:text-3xl font-black text-white tracking-tight leading-tight mb-3 md:mb-4 uppercase italic">
                         {{ shirt.title }}
                     </h1>
 
                     <!-- Bloco de Preço -->
-                    <div class="mb-6 bg-slate-950/60 p-4 rounded-2xl border border-slate-800">
-                        <div class="flex items-baseline gap-3">
-                            <span class="text-3xl md:text-4xl font-black text-emerald-400 tracking-tight">
+                    <div class="mb-4 md:mb-5 bg-slate-950/60 p-3.5 md:p-4 rounded-xl md:rounded-2xl border border-slate-800">
+                        <div class="flex items-baseline gap-2.5 flex-wrap">
+                            <span class="text-2xl sm:text-3xl md:text-4xl font-black text-emerald-400 tracking-tight">
                                 {{ shirt.preco_pix }}
                             </span>
-                            <span class="bg-emerald-500/10 text-emerald-400 text-xs font-black uppercase px-2.5 py-1 rounded-md border border-emerald-500/20">
+                            <span class="bg-emerald-500/10 text-emerald-400 text-[10px] md:text-xs font-black uppercase px-2 py-0.5 md:px-2.5 md:py-1 rounded-md border border-emerald-500/20">
                                 10% OFF no PIX
                             </span>
                         </div>
-                        <div class="text-sm font-medium text-slate-300 mt-1">
+                        <div class="text-xs md:text-sm font-medium text-slate-300 mt-1">
                             Preço normal: <span class="line-through text-slate-400 font-semibold">{{ shirt.price }}</span>
                         </div>
-                        <div class="text-xs font-semibold text-slate-300 mt-3 pt-3 border-t border-slate-800/80 flex items-center gap-1.5">
+                        <div class="text-[11px] md:text-xs font-semibold text-slate-300 mt-2.5 pt-2.5 border-t border-slate-800/80 flex items-center gap-1.5">
                             <i class="fa-solid fa-credit-card text-emerald-400"></i> 
                             Ou em até <span class="text-white font-bold">6x de {{ shirt.parcela_6x }}</span> sem juros
                         </div>
                     </div>
 
-                    <hr class="border-slate-800 mb-6">
-
-                    <!-- Seleção de Tamanhos Estilizada
-                    <div class="mb-8">
-                        <span class="text-xs font-extrabold uppercase tracking-widest text-slate-400 block mb-3">
-                            <i class="fa-solid fa-ruler-combined mr-1"></i> Tamanhos Disponíveis:
+                    <!-- Seleção de Tamanhos Estilizada (Descomentada) -->
+                    <div class="mb-5 md:mb-6">
+                        <span class="text-xs font-extrabold uppercase tracking-widest text-slate-400 block mb-2.5">
+                            <i class="fa-solid fa-ruler-combined mr-1 text-emerald-400"></i> Tamanhos Disponíveis:
                         </span>
-                        <div class="flex flex-wrap gap-3">
+                        <div class="flex flex-wrap gap-2.5">
                             {% for tam in shirt.todos_tamanhos %}
                                 {% if tam in shirt.disponiveis %}
-                                    <div class="w-12 h-12 rounded-xl bg-slate-800 border-2 border-emerald-500 text-emerald-400 font-black flex items-center justify-center shadow-lg shadow-emerald-500/10" title="Disponível">
+                                    <div class="w-11 h-11 md:w-12 md:h-12 rounded-xl bg-slate-800 border-2 border-emerald-500 text-emerald-400 font-black flex items-center justify-center shadow-lg shadow-emerald-500/10 text-sm" title="Disponível">
                                         {{ tam }}
                                     </div>
                                 {% else %}
-                                    <div class="w-12 h-12 rounded-xl bg-slate-900 border border-slate-800 text-slate-600 font-bold flex items-center justify-center cursor-not-allowed line-through opacity-40" title="Esgotado">
+                                    <div class="w-11 h-11 md:w-12 md:h-12 rounded-xl bg-slate-900 border border-slate-800 text-slate-600 font-bold flex items-center justify-center cursor-not-allowed line-through opacity-40 text-sm" title="Esgotado">
                                         {{ tam }}
                                     </div>
                                 {% endif %}
                             {% endfor %}
                         </div>
                     </div>
+
+                    <hr class="border-slate-800 mb-5">
                 </div>
 
                 <!-- Botão de Ação Esportivo (WhatsApp) -->
                 <div>
-                    <a href="https://wa.me/5532984543471?text=Olá! Tenho interesse em comprar a camisa: {{ shirt.title }}" target="_blank" class="w-full bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black uppercase tracking-wider py-4 px-6 rounded-xl transition-all shadow-lg shadow-emerald-500/25 flex items-center justify-center gap-3 text-base active:scale-95 cursor-pointer">
-                        <i class="fa-brands fa-whatsapp text-2xl"></i> Comprar / Consultar via WhatsApp
+                    <a href="https://wa.me/5532984543471?text=Olá! Tenho interesse em comprar a camisa: {{ shirt.title }}" target="_blank" class="w-full bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black uppercase tracking-wider py-3.5 md:py-4 px-4 rounded-xl transition-all shadow-lg shadow-emerald-500/25 flex items-center justify-center gap-2.5 text-sm md:text-base active:scale-95 cursor-pointer text-center">
+                        <i class="fa-brands fa-whatsapp text-xl md:text-2xl"></i> Comprar / Consultar via WhatsApp
                     </a>
-                    <p class="text-center text-slate-500 text-xs mt-3">
+                    <p class="text-center text-slate-500 text-[11px] md:text-xs mt-2.5">
                         <i class="fa-solid fa-shield-halved text-emerald-500 mr-1"></i> Compra segura e atendimento personalizado direto com o vendedor.
                     </p>
                 </div>
@@ -133,7 +134,7 @@
     </main>
 
     <!-- Footer -->
-    <footer class="bg-slate-900 border-t border-slate-800 text-center py-6 text-xs text-slate-500 uppercase tracking-widest">
+    <footer class="bg-slate-900 border-t border-slate-800 text-center py-5 md:py-6 text-[10px] md:text-xs text-slate-500 uppercase tracking-widest">
         &copy; 2026 Sport Store. Todos os direitos reservados.
     </footer>
 

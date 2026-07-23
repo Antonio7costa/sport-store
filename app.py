@@ -252,4 +252,4 @@ if __name__ == '__main__':
             admin_user = User(username='admin', password=senha_criptografada)
             db.session.add(admin_user)
             db.session.commit()
-    app.run(debug=False)
+    app.run(debug=True)
