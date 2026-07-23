@@ -6,7 +6,14 @@ from werkzeug.security import generate_password_hash, check_password_hash
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'sua-chave-provisoria-para-testes')
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///catalogo.db'
+# Configuração dinâmica: usa PostgreSQL na nuvem se disponível, ou SQLite localmente
+database_url = os.environ.get('DATABASE_URL', 'sqlite:///catalogo.db')
+
+# Correção de compatibilidade caso a URL fornecida comece com postgres:// em vez de postgresql://
+if database_url and database_url.startswith('postgres://'):
+    database_url = database_url.replace('postgres://', 'postgresql://', 1)
+
+app.config['SQLALCHEMY_DATABASE_URI'] = database_url
 db = SQLAlchemy(app)
 
 login_manager = LoginManager()
@@ -252,4 +259,4 @@ if __name__ == '__main__':
             admin_user = User(username='admin', password=senha_criptografada)
             db.session.add(admin_user)
             db.session.commit()
-    app.run(debug=True)
+    app.run(debug=False)
