@@ -253,10 +253,4 @@ def edit_shirt(id):
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()
-        # Cria um admin padrão com senha criptografada se não existir
-        if not User.query.filter_by(username='admin').first():
-            senha_criptografada = generate_password_hash('123')
-            admin_user = User(username='admin', password=senha_criptografada)
-            db.session.add(admin_user)
-            db.session.commit()
     app.run(debug=False)
