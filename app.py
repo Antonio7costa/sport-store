@@ -71,9 +71,9 @@ def index():
         except ValueError:
             valor_numerico = 0.0
 
-        # Cálculos de 10% no Pix e parcelamento em 6x
+        # Cálculos de 10% no Pix e parcelamento em 5x
         preco_pix = valor_numerico * 0.90
-        parcela_6x = valor_numerico / 6 if valor_numerico > 0 else 0.0
+        parcela_5x = valor_numerico / 5 if valor_numerico > 0 else 0.0
 
         # Função auxiliar para formatar de volta para o padrão de moeda Real (R$)
         def formata_real(val):
@@ -93,7 +93,7 @@ def index():
             'title': shirt.title,
             'price': shirt.price,
             'preco_pix': formata_real(preco_pix),
-            'parcela_6x': formata_real(parcela_6x),
+            'parcela_5x': formata_real(parcela_5x),
             'image_url': shirt.images[0].image_url if shirt.images else '',
             'images': shirt.images,
             'estoque': estoque_tamanhos,
@@ -115,7 +115,7 @@ def shirt_detail(id):
         valor_numerico = 0.0
 
     preco_pix = valor_numerico * 0.90
-    parcela_6x = valor_numerico / 6 if valor_numerico > 0 else 0.0
+    parcela_5x = valor_numerico / 5 if valor_numerico > 0 else 0.0
 
     def formata_real(val):
         return f"R$ {val:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.')
@@ -135,7 +135,7 @@ def shirt_detail(id):
         'title': shirt.title,
         'price': shirt.price,
         'preco_pix': formata_real(preco_pix),
-        'parcela_6x': formata_real(parcela_6x),
+        'parcela_5x': formata_real(parcela_5x),
         'images': shirt.images,  # <--- ESSA LINHA É A QUE FAZ A IMAGEM APARECER NO DETALHE
         'estoque': estoque_tamanhos,
         'todos_tamanhos': ['P', 'M', 'G', 'GG', 'XG'],
