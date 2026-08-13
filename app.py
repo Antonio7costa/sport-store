@@ -1,8 +1,11 @@
 import os
+from sqlalchemy import case
+from dotenv import load_dotenv
 from flask import Flask, render_template, redirect, url_for, request, flash
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
+load_dotenv()
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'sua-chave-provisoria-para-testes')
@@ -28,6 +31,7 @@ class User(UserMixin, db.Model):
 
 class Shirt(db.Model):
     id = db.Column(db.Integer, primary_key=True)
+    ordem = db.Column(db.Integer, default=0, nullable=False)
     title = db.Column(db.String(150), nullable=False)
     category = db.Column(db.String(50), nullable=True)
     price = db.Column(db.String(20), nullable=False)
@@ -46,13 +50,22 @@ class ShirtImage(db.Model):
 with app.app_context():
     db.create_all()
     
-    # Cria o admin automaticamente se ele não existir
+    # Puxa a senha diretamente do arquivo .env
+    senha_admin = os.environ.get('ADMIN_PASSWORD')
+    
     admin_existente = User.query.filter_by(username='admin').first()
     if not admin_existente:
-        senha_admin = os.environ.get('ADMIN_PASSWORD', 'sua-senha-padrao')
+        if not senha_admin:
+            raise ValueError("A variável ADMIN_PASSWORD não está definida no arquivo .env!")
+            
         novo_admin = User(username='admin', password=generate_password_hash(senha_admin))
         db.session.add(novo_admin)
         db.session.commit()
+    else:
+        # Garante que se você alterar a senha no .env, ela atualiza no banco ao reiniciar
+        if senha_admin:
+            admin_existente.password = generate_password_hash(senha_admin)
+            db.session.commit()
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -61,7 +74,14 @@ def load_user(user_id):
 # Rota Pública: Catálogo
 @app.route('/')
 def index():
-    shirts = Shirt.query.all()
+    shirts = Shirt.query.order_by(
+        case(
+            (Shirt.stock_p + Shirt.stock_m + Shirt.stock_g + Shirt.stock_gg + Shirt.stock_xg > 0, 0),
+            else_=1
+        ).asc(),
+        Shirt.ordem.asc(),
+        Shirt.id.desc()
+    ).all()
     shirts_list = []
     
     for shirt in shirts:
@@ -91,6 +111,7 @@ def index():
         shirts_list.append({
             'id': shirt.id,
             'title': shirt.title,
+            'category': shirt.category,
             'price': shirt.price,
             'preco_pix': formata_real(preco_pix),
             'parcela_5x': formata_real(parcela_5x),
@@ -133,10 +154,11 @@ def shirt_detail(id):
     shirt_data = {
         'id': shirt.id,
         'title': shirt.title,
+        'category': shirt.category,
         'price': shirt.price,
         'preco_pix': formata_real(preco_pix),
         'parcela_5x': formata_real(parcela_5x),
-        'images': shirt.images,  # <--- ESSA LINHA É A QUE FAZ A IMAGEM APARECER NO DETALHE
+        'images': shirt.images,
         'estoque': estoque_tamanhos,
         'todos_tamanhos': ['P', 'M', 'G', 'GG', 'XG'],
         'disponiveis': disponiveis
@@ -174,6 +196,7 @@ def admin():
         title = request.form.get('title')
         category = request.form.get('category')
         price = request.form.get('price')
+        ordem = int(request.form.get('ordem', 0) or 0)
         
         stock_p = int(request.form.get('stock_p', 0) or 0)
         stock_m = int(request.form.get('stock_m', 0) or 0)
@@ -182,8 +205,10 @@ def admin():
         stock_xg = int(request.form.get('stock_xg', 0) or 0)
         
         new_shirt = Shirt(
-            title=title, 
+            title=title,
+            category=category, 
             price=price,
+            ordem=ordem,
             stock_p=stock_p,
             stock_m=stock_m,
             stock_g=stock_g,
@@ -202,7 +227,7 @@ def admin():
         db.session.commit()
         return redirect(url_for('admin'))
     
-    shirts = Shirt.query.all()
+    shirts = Shirt.query.order_by(Shirt.ordem.asc(), Shirt.id.desc()).all()
     return render_template('admin.html', shirts=shirts)
 
 # Rota para Deletar Produto
@@ -222,8 +247,9 @@ def edit_shirt(id):
     
     if request.method == 'POST':
         shirt.title = request.form.get('title')
+        shirt.category = request.form.get('category')
         shirt.price = request.form.get('price')
-        
+        shirt.ordem = int(request.form.get('ordem', 0) or 0)
         shirt.stock_p = int(request.form.get('stock_p', 0) or 0)
         shirt.stock_m = int(request.form.get('stock_m', 0) or 0)
         shirt.stock_g = int(request.form.get('stock_g', 0) or 0)
@@ -249,6 +275,59 @@ def edit_shirt(id):
         return redirect(url_for('admin'))
         
     return render_template('edit_shirt.html', shirt=shirt)
+
+# Rota para filtrar camisas por categoria
+@app.route('/categoria/<string:nome_categoria>')
+def filtrar_categoria(nome_categoria):
+    # Busca apenas as camisas que pertencem à categoria selecionada, mantendo a ordenação
+    shirts = Shirt.query.filter_by(category=nome_categoria).order_by(
+        case(
+            (Shirt.stock_p + Shirt.stock_m + Shirt.stock_g + Shirt.stock_gg + Shirt.stock_xg > 0, 0),
+            else_=1
+        ).asc(),
+        Shirt.ordem.asc(),
+        Shirt.id.desc()
+    ).all()
+    
+    shirts_list = []
+    for shirt in shirts:
+        preco_limpo = shirt.price.replace('R$', '').replace('.', '').replace(',', '.').strip()
+        try:
+            valor_numerico = float(preco_limpo)
+        except ValueError:
+            valor_numerico = 0.0
+
+        preco_pix = valor_numerico * 0.90
+        parcela_5x = valor_numerico / 5 if valor_numerico > 0 else 0.0
+
+        def formata_real(val):
+            return f"R$ {val:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.')
+
+        estoque_tamanhos = {
+            'P': shirt.stock_p,
+            'M': shirt.stock_m,
+            'G': shirt.stock_g,
+            'GG': shirt.stock_gg,
+            'XG': shirt.stock_xg
+        }
+        
+        disponiveis = [tamanho for tamanho, qtd in estoque_tamanhos.items() if qtd > 0]
+        
+        shirts_list.append({
+            'id': shirt.id,
+            'title': shirt.title,
+            'category': shirt.category,
+            'price': shirt.price,
+            'preco_pix': formata_real(preco_pix),
+            'parcela_5x': formata_real(parcela_5x),
+            'image_url': shirt.images[0].image_url if shirt.images else '',
+            'images': shirt.images,
+            'estoque': estoque_tamanhos,
+            'todos_tamanhos': ['P', 'M', 'G', 'GG', 'XG'],
+            'disponiveis': disponiveis
+        })
+        
+    return render_template('index.html', shirts=shirts_list, categoria_atual=nome_categoria)
 
 if __name__ == '__main__':
     with app.app_context():

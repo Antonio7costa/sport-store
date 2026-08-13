@@ -33,6 +33,25 @@
                 <p class="text-[10px] sm:text-xs text-slate-400 uppercase tracking-widest">Linha Tailandesa 1:1</p>
             </div>
         </div>
+
+        <!-- Barra de Filtros por Seção -->
+        <div class="flex gap-2 overflow-x-auto pb-2 scrollbar-none">
+            <a href="/" class="px-3 py-1.5 rounded-lg text-xs font-bold uppercase transition bg-slate-900 border border-slate-800 hover:border-emerald-500 text-white whitespace-nowrap">
+                Todas
+            </a>
+            <a href="/categoria/Brasileiros" class="px-3 py-1.5 rounded-lg text-xs font-bold uppercase transition bg-slate-900 border border-slate-800 hover:border-emerald-500 text-white whitespace-nowrap">
+                Brasileiros
+            </a>
+            <a href="/categoria/Internacionais" class="px-3 py-1.5 rounded-lg text-xs font-bold uppercase transition bg-slate-900 border border-slate-800 hover:border-emerald-500 text-white whitespace-nowrap">
+                Internacionais
+            </a>
+            <a href="/categoria/Feminino" class="px-3 py-1.5 rounded-lg text-xs font-bold uppercase transition bg-slate-900 border border-slate-800 hover:border-emerald-500 text-white whitespace-nowrap">
+                Feminino
+            </a>
+            <a href="/categoria/Manga Longa" class="px-3 py-1.5 rounded-lg text-xs font-bold uppercase transition bg-slate-900 border border-slate-800 hover:border-emerald-500 text-white whitespace-nowrap">
+                Manga Longa
+            </a>
+        </div>
         
         <!-- Grid Alterada para 2 colunas no celular e até 4/5 colunas em telas maiores para caber mais produtos -->
         <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2.5 sm:gap-4 w-full">
@@ -42,12 +61,21 @@
                 <!-- Imagem do Produto Compacta -->
                 <div class="relative block overflow-hidden aspect-square bg-slate-950 group/img">
                     <a href="/shirt/{{ shirt.id }}" class="block w-full h-full">
-                        <img id="main-image-{{ shirt.id }}" src="{{ shirt.images[0].image_url if shirt.images else '' }}" alt="{{ shirt.title }}" class="w-full h-full object-cover group-hover/img:scale-105 transition-transform duration-500">
+                        <!-- Se estiver esgotado, aplica um filtro de escurecimento (brightness-50 grayscale) -->
+                        <img id="main-image-{{ shirt.id }}" src="{{ shirt.images[0].image_url if shirt.images else '' }}" alt="{{ shirt.title }}" class="w-full h-full object-cover group-hover/img:scale-105 transition-transform duration-500 {% if not shirt.disponiveis %}brightness-50 grayscale{% endif %}">
                     </a>
                     
                     <div class="absolute top-2 left-2 bg-emerald-500 text-slate-950 text-[9px] font-black uppercase px-1.5 py-0.5 rounded tracking-wider shadow-md z-10 pointer-events-none">
                         1:1
                     </div>
+                    <!-- AVISO DE ESGOTADO POR CIMA DA IMAGEM -->
+                    {% if not shirt.disponiveis %}
+                    <div class="absolute inset-0 flex items-center justify-center pointer-events-none z-20">
+                        <span class="bg-slate-950/80 border border-red-500/50 text-red-400 font-black text-xs uppercase px-3 py-1 rounded-lg tracking-wider shadow-xl backdrop-blur-xs">
+                            Esgotado
+                        </span>
+                    </div>
+                    {% endif %}
 
                     <!-- Botões de Seta Compactos -->
                     {% if shirt.images and shirt.images|length > 1 %}
@@ -64,6 +92,12 @@
                 <div class="p-2.5 sm:p-3 flex flex-col flex-grow justify-between gap-2">
                     <div>
                         <a href="/shirt/{{ shirt.id }}">
+                            {% if shirt.category %}
+                            <span class="text-[9px] sm:text-[10px] font-bold text-emerald-400 uppercase tracking-wider block mb-1">
+                                {{ shirt.category }}
+                            </span>
+                            {% endif %}
+                            
                             <h3 class="font-black text-xs sm:text-sm text-white mb-1.5 hover:text-emerald-400 transition uppercase italic line-clamp-2 leading-tight">
                                 {{ shirt.title }}
                             </h3>

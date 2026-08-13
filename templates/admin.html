@@ -19,7 +19,21 @@
             <h2 class="text-lg font-bold mb-4 text-slate-800">Adicionar Nova Camisa</h2>
             <form method="POST" class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <input type="text" name="title" placeholder="Nome (Ex: Camisa Real Madrid 24/25)" required class="border p-2 rounded">
-                <input type="text" name="category" placeholder="Categoria (Opcional)" class="border p-2 rounded">
+                <div>
+                    <label class="block text-xs font-bold text-gray-400 mb-1">Categoria Principal</label>
+                    <select name="category" class="w-full bg-slate-950 border border-slate-800 p-2.5 rounded-xl text-white text-sm">
+                        <option value="">Selecione uma categoria...</option>
+                        <option value="Brasileiros">Brasileiros</option>
+                        <option value="Internacionais">Internacionais</option>
+                        <option value="Feminino">Feminino</option>
+                        <option value="Manga Longa">Manga Longa</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold uppercase text-slate-400 mb-1">Ordem / Prioridade de Exibição</label>
+                    <input type="number" name="ordem" value="{{ shirt.ordem if shirt else 0 }}" class="w-full bg-slate-950 border border-slate-800 p-2.5 rounded-xl text-white text-sm focus:border-emerald-500 outline-none">
+                    <span class="text-[10px] text-slate-500 block mt-1">Menor número aparece primeiro no site (Ex: 1, 2, 3...).</span>
+                </div>
                 <input type="text" name="price" placeholder="Preço (Ex: R$ 149,90)" required class="border p-2 rounded">
                 <div class="md:col-span-2 border p-4 rounded bg-gray-50">
                     <span class="text-sm font-semibold text-slate-700 block mb-3">Quantidade em estoque por tamanho:</span>
