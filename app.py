@@ -74,14 +74,18 @@ def load_user(user_id):
 # Rota Pública: Catálogo
 @app.route('/')
 def index():
+    # Soma de estoque segura para PostgreSQL e SQLite
+    estoque_total = (Shirt.stock_p + Shirt.stock_m + Shirt.stock_g + Shirt.stock_gg + Shirt.stock_xg)
+    
     shirts = Shirt.query.order_by(
         case(
-            (Shirt.stock_p + Shirt.stock_m + Shirt.stock_g + Shirt.stock_gg + Shirt.stock_xg > 0, 0),
+            (estoque_total > 0, 0),
             else_=1
         ).asc(),
         Shirt.ordem.asc(),
         Shirt.id.desc()
     ).all()
+    
     shirts_list = []
     
     for shirt in shirts:
@@ -279,10 +283,11 @@ def edit_shirt(id):
 # Rota para filtrar camisas por categoria
 @app.route('/categoria/<string:nome_categoria>')
 def filtrar_categoria(nome_categoria):
-    # Busca apenas as camisas que pertencem à categoria selecionada, mantendo a ordenação
+    estoque_total = (Shirt.stock_p + Shirt.stock_m + Shirt.stock_g + Shirt.stock_gg + Shirt.stock_xg)
+    
     shirts = Shirt.query.filter_by(category=nome_categoria).order_by(
         case(
-            (Shirt.stock_p + Shirt.stock_m + Shirt.stock_g + Shirt.stock_gg + Shirt.stock_xg > 0, 0),
+            (estoque_total > 0, 0),
             else_=1
         ).asc(),
         Shirt.ordem.asc(),
