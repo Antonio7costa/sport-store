@@ -2,8 +2,9 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Editar Camisa</title>
-    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='tailwind.css') }}?v=2">
 </head>
 <body class="bg-gray-100 font-sans">
     <header class="bg-slate-900 text-white p-4 shadow-md flex justify-between items-center">
@@ -15,6 +16,7 @@
         <div class="bg-white p-6 rounded-lg shadow-md">
             <h2 class="text-lg font-bold mb-4 text-slate-800">Editando: {{ shirt.title }}</h2>
             <form method="POST" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <input type="text" name="title" value="{{ shirt.title }}" placeholder="Nome" required class="border p-2 rounded">
                 <div>
                     <label class="block text-xs font-bold text-gray-400 mb-1">Categoria Principal</label>

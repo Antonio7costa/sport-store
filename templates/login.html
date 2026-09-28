@@ -2,11 +2,12 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login Admin</title>
-    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='tailwind.css') }}?v=2">
 </head>
-<body class="bg-gray-100 flex items-center justify-center h-screen">
-    <div class="bg-white p-8 rounded-lg shadow-md w-96">
+<body class="bg-gray-100 flex items-center justify-center min-h-screen p-4">
+    <div class="bg-white p-8 rounded-lg shadow-md w-full max-w-sm">
         <h2 class="text-2xl font-bold mb-6 text-center text-slate-800">Admin Login</h2>
         {% with messages = get_flashed_messages() %}
           {% if messages %}
@@ -14,8 +15,11 @@
           {% endif %}
         {% endwith %}
         <form method="POST" class="flex flex-col gap-4">
-            <input type="text" name="username" placeholder="Usuário" required class="border p-2 rounded">
-            <input type="password" name="password" placeholder="Senha" required class="border p-2 rounded">
+            <!-- [ALTERADO 5] token CSRF: obrigatório em todo <form method="POST"> depois de ativar o CSRFProtect -->
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <!-- [ALTERADO 4] autocomplete: o navegador/gerenciador de senhas preenche e salva corretamente -->
+            <input type="text" name="username" placeholder="Usuário" required autocomplete="username" class="border p-2 rounded">
+            <input type="password" name="password" placeholder="Senha" required autocomplete="current-password" class="border p-2 rounded">
             <button type="submit" class="bg-slate-900 text-white p-2 rounded font-semibold hover:bg-slate-800">Entrar</button>
         </form>
         <p class="mt-4 text-center"><a href="/" class="text-sm text-indigo-600 hover:underline">Voltar para o catálogo</a></p>

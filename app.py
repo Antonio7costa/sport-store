@@ -1,14 +1,29 @@
 import os
 from sqlalchemy import case
+from sqlalchemy.orm import selectinload  # [ALTERADO 1] carrega as fotos de todas as camisas em 1 consulta só
 from dotenv import load_dotenv
 from flask import Flask, render_template, redirect, url_for, request, flash
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
+from flask_wtf.csrf import CSRFProtect
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
+from werkzeug.middleware.proxy_fix import ProxyFix
+
+# [ALTERADO 2] compressão gzip das respostas (pip install flask-compress)
+try:
+    from flask_compress import Compress
+except ImportError:
+    Compress = None
+
 load_dotenv()
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'sua-chave-provisoria-para-testes')
+app.config['SESSION_COOKIE_SECURE'] = True
+app.config['SESSION_COOKIE_HTTPONLY'] = True
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 # Configuração dinâmica: usa PostgreSQL na nuvem se disponível, ou SQLite localmente
 database_url = os.environ.get('DATABASE_URL', 'sqlite:///catalogo.db')
 
@@ -17,7 +32,34 @@ if database_url and database_url.startswith('postgres://'):
     database_url = database_url.replace('postgres://', 'postgresql://', 1)
 
 app.config['SQLALCHEMY_DATABASE_URI'] = database_url
+
+# [ALTERADO 3] mantém conexões com o banco vivas
+app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
+    'pool_pre_ping': True,
+    'pool_recycle': 280,
+}
+
 db = SQLAlchemy(app)
+
+csrf = CSRFProtect(app)
+
+app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1)
+
+# [NOVO] Limitador de tentativas
+limiter = Limiter(get_remote_address, app=app, default_limits=[])
+
+# [ALTERADO 2] ativa a compressão
+if Compress:
+    Compress(app)
+
+
+# [ALTERADO 4] cache no navegador para arquivos da pasta /static (1 ano)
+@app.after_request
+def adicionar_cache_estatico(resp):
+    if request.path.startswith('/static/'):
+        resp.headers['Cache-Control'] = 'public, max-age=31536000, immutable'
+    return resp
+
 
 login_manager = LoginManager()
 login_manager.init_app(app)
@@ -69,70 +111,17 @@ with app.app_context():
 
 @login_manager.user_loader
 def load_user(user_id):
-    return User.query.get(int(user_id))
+    return db.session.get(User, int(user_id))  # [ALTERADO 5] User.query.get() está obsoleto
 
-# Rota Pública: Catálogo
-@app.route('/')
-def index():
-    # Soma de estoque segura para PostgreSQL e SQLite
-    estoque_total = (Shirt.stock_p + Shirt.stock_m + Shirt.stock_g + Shirt.stock_gg + Shirt.stock_xg)
-    
-    shirts = Shirt.query.order_by(
-        case(
-            (estoque_total > 0, 0),
-            else_=1
-        ).asc(),
-        Shirt.ordem.asc(),
-        Shirt.id.desc()
-    ).all()
-    
-    shirts_list = []
-    
-    for shirt in shirts:
-        preco_limpo = shirt.price.replace('R$', '').replace('.', '').replace(',', '.').strip()
-        try:
-            valor_numerico = float(preco_limpo)
-        except ValueError:
-            valor_numerico = 0.0
 
-        # Cálculos de 10% no Pix e parcelamento em 5x
-        preco_pix = valor_numerico * 0.90
-        parcela_5x = valor_numerico / 5 if valor_numerico > 0 else 0.0
+# ---------------------------------------------------------------------------
+# [ALTERADO 6] Funções auxiliares: esse código estava copiado 3 vezes
+# ---------------------------------------------------------------------------
+def formata_real(val):
+    return f"R$ {val:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.')
 
-        # Função auxiliar para formatar de volta para o padrão de moeda Real (R$)
-        def formata_real(val):
-            return f"R$ {val:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.')
-        estoque_tamanhos = {
-            'P': shirt.stock_p,
-            'M': shirt.stock_m,
-            'G': shirt.stock_g,
-            'GG': shirt.stock_gg,
-            'XG': shirt.stock_xg
-        }
-        
-        disponiveis = [tamanho for tamanho, qtd in estoque_tamanhos.items() if qtd > 0]
-        
-        shirts_list.append({
-            'id': shirt.id,
-            'title': shirt.title,
-            'category': shirt.category,
-            'price': shirt.price,
-            'preco_pix': formata_real(preco_pix),
-            'parcela_5x': formata_real(parcela_5x),
-            'image_url': shirt.images[0].image_url if shirt.images else '',
-            'images': shirt.images,
-            'estoque': estoque_tamanhos,
-            'todos_tamanhos': ['P', 'M', 'G', 'GG', 'XG'],
-            'disponiveis': disponiveis
-        })
-        
-    return render_template('index.html', shirts=shirts_list)
 
-# Rota de detalhes da camisa
-@app.route('/shirt/<int:id>')
-def shirt_detail(id):
-    shirt = Shirt.query.get_or_404(id)
-    
+def montar_shirt_dict(shirt):
     preco_limpo = shirt.price.replace('R$', '').replace('.', '').replace(',', '.').strip()
     try:
         valor_numerico = float(preco_limpo)
@@ -141,9 +130,6 @@ def shirt_detail(id):
 
     preco_pix = valor_numerico * 0.90
     parcela_5x = valor_numerico / 5 if valor_numerico > 0 else 0.0
-
-    def formata_real(val):
-        return f"R$ {val:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.')
 
     estoque_tamanhos = {
         'P': shirt.stock_p,
@@ -154,24 +140,53 @@ def shirt_detail(id):
     }
     
     disponiveis = [tamanho for tamanho, qtd in estoque_tamanhos.items() if qtd > 0]
-    
-    shirt_data = {
+
+    return {
         'id': shirt.id,
         'title': shirt.title,
         'category': shirt.category,
         'price': shirt.price,
         'preco_pix': formata_real(preco_pix),
         'parcela_5x': formata_real(parcela_5x),
+        'image_url': shirt.images[0].image_url if shirt.images else '',
         'images': shirt.images,
         'estoque': estoque_tamanhos,
         'todos_tamanhos': ['P', 'M', 'G', 'GG', 'XG'],
         'disponiveis': disponiveis
     }
-    
-    return render_template('shirt_detail.html', shirt=shirt_data)
 
-# Rota de Login do Admin
+
+def consultar_catalogo(categoria=None):
+    estoque_total = (Shirt.stock_p + Shirt.stock_m + Shirt.stock_g + Shirt.stock_gg + Shirt.stock_xg)
+
+    # [ALTERADO 7] selectinload: 1 consulta para todas as fotos, em vez de 1 por camisa (N+1)
+    query = Shirt.query.options(selectinload(Shirt.images))
+    if categoria:
+        query = query.filter_by(category=categoria)
+
+    return query.order_by(
+        case(
+            (estoque_total > 0, 0),
+            else_=1
+        ).asc(),
+        Shirt.ordem.asc(),
+        Shirt.id.desc()
+    ).all()
+
+
+@app.route('/')
+def index():
+    shirts = consultar_catalogo()
+    shirts_list = [montar_shirt_dict(s) for s in shirts]  # [ALTERADO 6]
+    return render_template('index.html', shirts=shirts_list)
+
+@app.route('/shirt/<int:id>')
+def shirt_detail(id):
+    shirt = Shirt.query.options(selectinload(Shirt.images)).filter_by(id=id).first_or_404()  # [ALTERADO 7]
+    return render_template('shirt_detail.html', shirt=montar_shirt_dict(shirt))  # [ALTERADO 6]
+
 @app.route('/login', methods=['GET', 'POST'])
+@limiter.limit("5 per minute", methods=["POST"])
 def login():
     if request.method == 'POST':
         username = request.form.get('username')
@@ -231,11 +246,11 @@ def admin():
         db.session.commit()
         return redirect(url_for('admin'))
     
-    shirts = Shirt.query.order_by(Shirt.ordem.asc(), Shirt.id.desc()).all()
+    shirts = Shirt.query.options(selectinload(Shirt.images)).order_by(Shirt.ordem.asc(), Shirt.id.desc()).all()  # [ALTERADO 7]
     return render_template('admin.html', shirts=shirts)
 
 # Rota para Deletar Produto
-@app.route('/admin/delete/<int:id>')
+@app.route('/admin/delete/<int:id>', methods=['POST'])
 @login_required
 def delete_shirt(id):
     shirt = Shirt.query.get_or_404(id)
@@ -283,55 +298,8 @@ def edit_shirt(id):
 # Rota para filtrar camisas por categoria
 @app.route('/categoria/<string:nome_categoria>')
 def filtrar_categoria(nome_categoria):
-    estoque_total = (Shirt.stock_p + Shirt.stock_m + Shirt.stock_g + Shirt.stock_gg + Shirt.stock_xg)
-    
-    shirts = Shirt.query.filter_by(category=nome_categoria).order_by(
-        case(
-            (estoque_total > 0, 0),
-            else_=1
-        ).asc(),
-        Shirt.ordem.asc(),
-        Shirt.id.desc()
-    ).all()
-    
-    shirts_list = []
-    for shirt in shirts:
-        preco_limpo = shirt.price.replace('R$', '').replace('.', '').replace(',', '.').strip()
-        try:
-            valor_numerico = float(preco_limpo)
-        except ValueError:
-            valor_numerico = 0.0
-
-        preco_pix = valor_numerico * 0.90
-        parcela_5x = valor_numerico / 5 if valor_numerico > 0 else 0.0
-
-        def formata_real(val):
-            return f"R$ {val:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.')
-
-        estoque_tamanhos = {
-            'P': shirt.stock_p,
-            'M': shirt.stock_m,
-            'G': shirt.stock_g,
-            'GG': shirt.stock_gg,
-            'XG': shirt.stock_xg
-        }
-        
-        disponiveis = [tamanho for tamanho, qtd in estoque_tamanhos.items() if qtd > 0]
-        
-        shirts_list.append({
-            'id': shirt.id,
-            'title': shirt.title,
-            'category': shirt.category,
-            'price': shirt.price,
-            'preco_pix': formata_real(preco_pix),
-            'parcela_5x': formata_real(parcela_5x),
-            'image_url': shirt.images[0].image_url if shirt.images else '',
-            'images': shirt.images,
-            'estoque': estoque_tamanhos,
-            'todos_tamanhos': ['P', 'M', 'G', 'GG', 'XG'],
-            'disponiveis': disponiveis
-        })
-        
+    shirts = consultar_catalogo(categoria=nome_categoria)  # [ALTERADO 6 e 7]
+    shirts_list = [montar_shirt_dict(s) for s in shirts]
     return render_template('index.html', shirts=shirts_list, categoria_atual=nome_categoria)
 
 if __name__ == '__main__':

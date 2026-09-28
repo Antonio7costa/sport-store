@@ -4,19 +4,36 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Catálogo | Sport Store</title>
-    <!-- Tailwind CSS v4 via CDN -->
-    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
-    <!-- FontAwesome para ícones -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- [ALTERADO 1] Antes: <script src="...@tailwindcss/browser@4"></script> (gerava o CSS no navegador, lento).
+         Agora: CSS já compilado, servido da pasta static. -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='tailwind.css') }}?v=2">
+    <link rel="preconnect" href="https://dfynyrphuroowpuygnkg.supabase.co" crossorigin>
 </head>
+
+<!-- [ALTERADO 2] Macro com os ícones em SVG (substitui as tags <i class="fa-...">) -->
+{% macro icone(nome, classe='w-4 h-4') -%}
+    {%- if nome == 'shirt' -%}
+    <img src="{{ url_for('static', filename='shirt-icon.svg') }}?v=1" alt="" class="{{ classe }}">
+    {%- elif nome == 'pin' -%}
+    <svg class="{{ classe }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+    {%- elif nome == 'whatsapp' -%}
+    <img src="{{ url_for('static', filename='whatsapp.svg') }}?v=1" alt="WhatsApp" class="{{ classe }}">
+    {%- elif nome == 'left' -%}
+    <svg class="{{ classe }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>
+    {%- elif nome == 'right' -%}
+    <svg class="{{ classe }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
+    {%- endif -%}
+{%- endmacro %}
+
 <body class="bg-slate-950 text-slate-100 font-sans min-h-screen flex flex-col selection:bg-emerald-500 selection:text-white">
 
     <!-- Header Esportivo -->
     <header class="bg-slate-900 border-b border-slate-800 sticky top-0 z-50 shadow-lg">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 py-3.5 flex items-center justify-between">
             <a href="/" class="flex items-center gap-3 group cursor-pointer">
-                <div class="bg-emerald-500 text-slate-950 p-2 rounded-xl font-black text-sm shadow-md shadow-emerald-500/20 group-hover:scale-105 transition">
-                    <i class="fa-solid fa-shirt"></i> FC
+                <div class="bg-emerald-500 text-slate-950 p-2 rounded-xl font-black text-sm shadow-md shadow-emerald-500/20 group-hover:scale-105 transition flex items-center gap-1">
+                    {{ icone('shirt', 'w-4 h-4') }} FC  <!-- [ALTERADO 2] -->
                 </div>
                 <span class="text-xl sm:text-2xl font-black tracking-wider uppercase italic text-white group-hover:text-emerald-400 transition-colors">
                     Sport <span class="text-emerald-400 group-hover:text-white transition-colors">Store</span>
@@ -61,8 +78,19 @@
                 <!-- Imagem do Produto Compacta -->
                 <div class="relative block overflow-hidden aspect-square bg-slate-950 group/img">
                     <a href="/shirt/{{ shirt.id }}" class="block w-full h-full">
-                        <!-- Se estiver esgotado, aplica um filtro de escurecimento (brightness-50 grayscale) -->
-                        <img id="main-image-{{ shirt.id }}" src="{{ shirt.images[0].image_url if shirt.images else '' }}" alt="{{ shirt.title }}" class="w-full h-full object-cover group-hover/img:scale-105 transition-transform duration-500 {% if not shirt.disponiveis %}brightness-50 grayscale{% endif %}">
+                        <!-- [ALTERADO 4] Só renderiza <img> se houver foto (antes gerava src="") -->
+                        {% if shirt.image_url %}
+                        <!-- [ALTERADO 5] width/height, decoding="async", lazy a partir da 5ª camisa,
+                             fetchpriority="high" na 1ª -->
+                        <img id="main-image-{{ shirt.id }}"
+                             src="{{ shirt.image_url }}"
+                             alt="{{ shirt.title }}"
+                             width="400" height="400"
+                             decoding="async"
+                             {% if loop.index > 4 %}loading="lazy"{% endif %}
+                             {% if loop.first %}fetchpriority="high"{% endif %}
+                             class="w-full h-full object-cover group-hover/img:scale-105 transition-transform duration-500 {% if not shirt.disponiveis %}brightness-50 grayscale{% endif %}">
+                        {% endif %}
                     </a>
                     
                     <div class="absolute top-2 left-2 bg-emerald-500 text-slate-950 text-[9px] font-black uppercase px-1.5 py-0.5 rounded tracking-wider shadow-md z-10 pointer-events-none">
@@ -79,11 +107,11 @@
 
                     <!-- Botões de Seta Compactos -->
                     {% if shirt.images and shirt.images|length > 1 %}
-                    <button type="button" onclick="event.preventDefault(); mudarFotoCatalogo('{{ shirt.id }}', -1)" class="absolute left-1 top-1/2 -translate-y-1/2 bg-slate-950/80 hover:bg-emerald-500 hover:text-slate-950 text-white w-6 h-6 rounded-full flex items-center justify-center transition border border-slate-700/80 shadow opacity-0 group-hover/img:opacity-100 cursor-pointer z-20">
-                        <i class="fa-solid fa-chevron-left text-[10px]"></i>
+                    <button type="button" aria-label="Foto anterior" onclick="event.preventDefault(); mudarFotoCatalogo('{{ shirt.id }}', -1)" class="absolute left-1 top-1/2 -translate-y-1/2 bg-slate-950/80 hover:bg-emerald-500 hover:text-slate-950 text-white w-6 h-6 rounded-full flex items-center justify-center transition border border-slate-700/80 shadow opacity-0 group-hover/img:opacity-100 cursor-pointer z-20">
+                        {{ icone('left', 'w-2.5 h-2.5') }} <!-- [ALTERADO 2] -->
                     </button>
-                    <button type="button" onclick="event.preventDefault(); mudarFotoCatalogo('{{ shirt.id }}', 1)" class="absolute right-1 top-1/2 -translate-y-1/2 bg-slate-950/80 hover:bg-emerald-500 hover:text-slate-950 text-white w-6 h-6 rounded-full flex items-center justify-center transition border border-slate-700/80 shadow opacity-0 group-hover/img:opacity-100 cursor-pointer z-20">
-                        <i class="fa-solid fa-chevron-right text-[10px]"></i>
+                    <button type="button" aria-label="Próxima foto" onclick="event.preventDefault(); mudarFotoCatalogo('{{ shirt.id }}', 1)" class="absolute right-1 top-1/2 -translate-y-1/2 bg-slate-950/80 hover:bg-emerald-500 hover:text-slate-950 text-white w-6 h-6 rounded-full flex items-center justify-center transition border border-slate-700/80 shadow opacity-0 group-hover/img:opacity-100 cursor-pointer z-20">
+                        {{ icone('right', 'w-2.5 h-2.5') }} <!-- [ALTERADO 2] -->
                     </button>
                     {% endif %}
                 </div>
@@ -119,9 +147,9 @@
                                 </div>
                             </div>
 
-                            <!-- Botão do WhatsApp perfeitamente ao lado -->
-                            <a href="https://wa.me/5532984543471?text=Olá! Tenho interesse na camisa: {{ shirt.title }}" target="_blank" class="bg-emerald-500 hover:bg-emerald-400 text-slate-950 w-8 h-8 rounded-lg text-xs font-black transition flex items-center justify-center shrink-0 shadow-md shadow-emerald-500/20">
-                                <i class="fa-brands fa-whatsapp text-sm"></i>
+                            <!-- [ALTERADO 6] texto do WhatsApp com |urlencode -->
+                            <a href="https://wa.me/5532984543471?text={{ ('Olá! Tenho interesse na camisa: ' ~ shirt.title)|urlencode }}" target="_blank" rel="noopener" aria-label="Chamar no WhatsApp" class="bg-emerald-500 hover:bg-emerald-400 text-slate-950 w-8 h-8 rounded-lg text-xs font-black transition flex items-center justify-center shrink-0 shadow-md shadow-emerald-500/20">
+                                {{ icone('whatsapp', 'w-4 h-4') }} <!-- [ALTERADO 2] -->
                             </a>
                         </div>
 
@@ -146,7 +174,7 @@
             </div>
             {% else %}
             <div class="col-span-full text-center py-16 bg-slate-900 border border-slate-800 rounded-2xl">
-                <i class="fa-solid fa-shirt text-slate-600 text-4xl mb-3"></i>
+                <div class="flex justify-center text-slate-600 mb-3">{{ icone('shirt', 'w-10 h-10') }}</div> <!-- [ALTERADO 2] -->
                 <p class="text-slate-400 font-semibold uppercase tracking-wider text-xs">Nenhuma camisa cadastrada.</p>
             </div>
             {% endfor %}
@@ -155,8 +183,9 @@
 
     <!-- Footer com Endereço -->
     <footer class="bg-slate-900 border-t border-slate-800 text-center py-5 px-4 text-[10px] text-slate-500 uppercase tracking-widest mt-8 flex flex-col gap-1.5">
-        <div class="text-slate-400 font-medium">
-            <i class="fa-solid fa-location-dot text-emerald-400 mr-1"></i> Atendimento / Retirada: <span class="text-slate-200">Rua Agenor Lisboa, 41 - Pinheiro Chagas, Prados - MG</span>
+        <div class="text-slate-400 font-medium flex items-center justify-center gap-1 flex-wrap">
+            <span class="text-emerald-400">{{ icone('pin', 'w-3 h-3') }}</span> <!-- [ALTERADO 2] -->
+            Atendimento / Retirada: <span class="text-slate-200">Rua Agenor Lisboa, 41 - Pinheiro Chagas, Prados - MG</span>
         </div>
         <div>
             &copy; 2026 Sport Store. Todos os direitos reservados.
