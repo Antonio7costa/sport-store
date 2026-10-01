@@ -4,6 +4,7 @@ from sqlalchemy.orm import selectinload  # [ALTERADO 1] carrega as fotos de toda
 from dotenv import load_dotenv
 from flask import Flask, render_template, redirect, url_for, request, flash
 from flask_sqlalchemy import SQLAlchemy
+from flask_migrate import Migrate
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_wtf.csrf import CSRFProtect
@@ -40,6 +41,7 @@ app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
 }
 
 db = SQLAlchemy(app)
+migrate = Migrate(app, db)
 
 csrf = CSRFProtect(app)
 

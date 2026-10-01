@@ -16,3 +16,4 @@ gunicorn
 Flask-Compress
 Flask-WTF
 Flask-Limiter
+Flask-Migrate==4.0.7
