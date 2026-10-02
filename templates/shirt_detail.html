@@ -120,7 +120,7 @@
                                 {{ shirt.preco_pix }}
                             </span>
                             <span class="bg-emerald-500/10 text-emerald-400 text-[10px] md:text-xs font-black uppercase px-2 py-0.5 md:px-2.5 md:py-1 rounded-md border border-emerald-500/20">
-                                10% OFF no PIX
+                                {{ shirt.desconto_pix|round|int }}% OFF no PIX
                             </span>
                         </div>
                         <div class="text-xs md:text-sm font-medium text-slate-300 mt-1">

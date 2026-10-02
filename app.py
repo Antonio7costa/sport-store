@@ -92,24 +92,8 @@ class ShirtImage(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     image_url = db.Column(db.String(300), nullable=False)
     shirt_id = db.Column(db.Integer, db.ForeignKey('shirt.id'), nullable=False)
-    
-
-class Configuracao(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    promocao_ativa = db.Column(db.Boolean, default=False, nullable=False)
-    promocao_percentual = db.Column(db.Float, default=0.0, nullable=False)
-    promocao_categoria = db.Column(db.String(50), nullable=True)  # None = vale pra tudo
 
 
-def obter_configuracao():
-    config = Configuracao.query.first()
-    if not config:
-        config = Configuracao(promocao_ativa=False, promocao_percentual=0.0, promocao_categoria=None)
-        db.session.add(config)
-        db.session.commit()
-    return config
-
-    
 with app.app_context():
     db.create_all()
     
@@ -142,21 +126,12 @@ def formata_real(val):
     return f"R$ {val:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.')
 
 
-def montar_shirt_dict(shirt, config=None):
+def montar_shirt_dict(shirt):
     preco_limpo = shirt.price.replace('R$', '').replace('.', '').replace(',', '.').strip()
     try:
         valor_numerico = float(preco_limpo)
     except ValueError:
         valor_numerico = 0.0
-
-    if config is None:
-        config = obter_configuracao()
-
-    promo_aplica = config.promocao_ativa and (
-        not config.promocao_categoria or config.promocao_categoria == shirt.category
-    )
-    if promo_aplica:
-        valor_numerico *= (1 - config.promocao_percentual / 100)
 
     desconto_pix = shirt.desconto_pix if shirt.desconto_pix is not None else 10.0
     preco_pix = valor_numerico * (1 - desconto_pix / 100)
@@ -176,8 +151,8 @@ def montar_shirt_dict(shirt, config=None):
         'title': shirt.title,
         'category': shirt.category,
         'price': shirt.price,
-        'em_promocao': promo_aplica,
         'preco_pix': formata_real(preco_pix),
+        'desconto_pix': desconto_pix,
         'parcela_5x': formata_real(parcela_5x),
         'image_url': shirt.images[0].image_url if shirt.images else '',
         'images': shirt.images,
@@ -243,7 +218,6 @@ def categorias_para_home():
 
 
 def montar_secoes_home(por_categoria=10):
-    config = obter_configuracao()
     secoes = []
 
     promocoes = consultar_promocoes(limite=por_categoria)
@@ -252,7 +226,7 @@ def montar_secoes_home(por_categoria=10):
     if promocoes:
         secoes.append({
             'nome': 'Promoções',
-            'shirts': [montar_shirt_dict(s, config) for s in promocoes]
+            'shirts': [montar_shirt_dict(s) for s in promocoes]
         })
 
     for categoria in categorias_para_home():
@@ -260,7 +234,7 @@ def montar_secoes_home(por_categoria=10):
         if shirts:
             secoes.append({
                 'nome': categoria,
-                'shirts': [montar_shirt_dict(s, config) for s in shirts]
+                'shirts': [montar_shirt_dict(s) for s in shirts]
             })
     return secoes
 
@@ -273,8 +247,7 @@ def index():
 @app.route('/shirt/<int:id>')
 def shirt_detail(id):
     shirt = Shirt.query.options(selectinload(Shirt.images)).filter_by(id=id).first_or_404()
-    config = obter_configuracao()
-    return render_template('shirt_detail.html', shirt=montar_shirt_dict(shirt, config))
+    return render_template('shirt_detail.html', shirt=montar_shirt_dict(shirt))
 
 @app.route('/login', methods=['GET', 'POST'])
 @limiter.limit("5 per minute", methods=["POST"])
@@ -346,21 +319,6 @@ def admin():
     return render_template('admin.html', shirts=shirts)
 
 
-@app.route('/admin/promocao', methods=['GET', 'POST'])
-@login_required
-def promocao():
-    config = obter_configuracao()
-    if request.method == 'POST':
-        config.promocao_ativa = request.form.get('promocao_ativa') == 'on'
-        config.promocao_percentual = float(request.form.get('promocao_percentual', 0) or 0)
-        categoria = request.form.get('promocao_categoria', '').strip()
-        config.promocao_categoria = categoria if categoria else None
-        db.session.commit()
-        flash('Configuração da promoção atualizada.')
-        return redirect(url_for('promocao'))
-    return render_template('promocao.html', config=config)
-
-
 # Rota para Deletar Produto
 @app.route('/admin/delete/<int:id>', methods=['POST'])
 @login_required
@@ -413,15 +371,13 @@ def edit_shirt(id):
 @app.route('/categoria/<string:nome_categoria>')
 def filtrar_categoria(nome_categoria):
     shirts = consultar_catalogo(categoria=nome_categoria)
-    config = obter_configuracao()
-    shirts_list = [montar_shirt_dict(s, config) for s in shirts]
+    shirts_list = [montar_shirt_dict(s) for s in shirts]
     return render_template('index.html', shirts=shirts_list, categoria_atual=nome_categoria)
 
 @app.route('/promocoes')
 def ver_promocoes():
     shirts = consultar_promocoes(limite=None)
-    config = obter_configuracao()
-    shirts_list = [montar_shirt_dict(s, config) for s in shirts]
+    shirts_list = [montar_shirt_dict(s) for s in shirts]
     return render_template('index.html', shirts=shirts_list, categoria_atual='Promoções')
 
 
