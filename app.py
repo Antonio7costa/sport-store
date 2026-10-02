@@ -79,6 +79,8 @@ class Shirt(db.Model):
     title = db.Column(db.String(150), nullable=False)
     category = db.Column(db.String(50), nullable=True)
     price = db.Column(db.String(20), nullable=False)
+    desconto_pix = db.Column(db.Float, default=10.0, nullable=False)
+    destaque_promocao = db.Column(db.Boolean, default=False, nullable=False)
     stock_p = db.Column(db.Integer, default=0, nullable=False)
     stock_m = db.Column(db.Integer, default=0, nullable=False)
     stock_g = db.Column(db.Integer, default=0, nullable=False)
@@ -90,6 +92,23 @@ class ShirtImage(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     image_url = db.Column(db.String(300), nullable=False)
     shirt_id = db.Column(db.Integer, db.ForeignKey('shirt.id'), nullable=False)
+    
+
+class Configuracao(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    promocao_ativa = db.Column(db.Boolean, default=False, nullable=False)
+    promocao_percentual = db.Column(db.Float, default=0.0, nullable=False)
+    promocao_categoria = db.Column(db.String(50), nullable=True)  # None = vale pra tudo
+
+
+def obter_configuracao():
+    config = Configuracao.query.first()
+    if not config:
+        config = Configuracao(promocao_ativa=False, promocao_percentual=0.0, promocao_categoria=None)
+        db.session.add(config)
+        db.session.commit()
+    return config
+
     
 with app.app_context():
     db.create_all()
@@ -123,14 +142,24 @@ def formata_real(val):
     return f"R$ {val:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.')
 
 
-def montar_shirt_dict(shirt):
+def montar_shirt_dict(shirt, config=None):
     preco_limpo = shirt.price.replace('R$', '').replace('.', '').replace(',', '.').strip()
     try:
         valor_numerico = float(preco_limpo)
     except ValueError:
         valor_numerico = 0.0
 
-    preco_pix = valor_numerico * 0.90
+    if config is None:
+        config = obter_configuracao()
+
+    promo_aplica = config.promocao_ativa and (
+        not config.promocao_categoria or config.promocao_categoria == shirt.category
+    )
+    if promo_aplica:
+        valor_numerico *= (1 - config.promocao_percentual / 100)
+
+    desconto_pix = shirt.desconto_pix if shirt.desconto_pix is not None else 10.0
+    preco_pix = valor_numerico * (1 - desconto_pix / 100)
     parcela_5x = valor_numerico / 5 if valor_numerico > 0 else 0.0
 
     estoque_tamanhos = {
@@ -140,7 +169,6 @@ def montar_shirt_dict(shirt):
         'GG': shirt.stock_gg,
         'XG': shirt.stock_xg
     }
-    
     disponiveis = [tamanho for tamanho, qtd in estoque_tamanhos.items() if qtd > 0]
 
     return {
@@ -148,6 +176,7 @@ def montar_shirt_dict(shirt):
         'title': shirt.title,
         'category': shirt.category,
         'price': shirt.price,
+        'em_promocao': promo_aplica,
         'preco_pix': formata_real(preco_pix),
         'parcela_5x': formata_real(parcela_5x),
         'image_url': shirt.images[0].image_url if shirt.images else '',
@@ -158,34 +187,94 @@ def montar_shirt_dict(shirt):
     }
 
 
-def consultar_catalogo(categoria=None):
+def consultar_catalogo(categoria=None, limite=None, excluir_ids=None):
     estoque_total = (Shirt.stock_p + Shirt.stock_m + Shirt.stock_g + Shirt.stock_gg + Shirt.stock_xg)
 
-    # [ALTERADO 7] selectinload: 1 consulta para todas as fotos, em vez de 1 por camisa (N+1)
     query = Shirt.query.options(selectinload(Shirt.images))
     if categoria:
         query = query.filter_by(category=categoria)
+    if excluir_ids:
+        query = query.filter(Shirt.id.notin_(excluir_ids))
 
-    return query.order_by(
+    query = query.order_by(
         case(
             (estoque_total > 0, 0),
             else_=1
         ).asc(),
         Shirt.ordem.asc(),
         Shirt.id.desc()
-    ).all()
+    )
+
+    if limite:
+        query = query.limit(limite)
+
+    return query.all()
+
+
+def consultar_promocoes(limite=10):
+    estoque_total = (Shirt.stock_p + Shirt.stock_m + Shirt.stock_g + Shirt.stock_gg + Shirt.stock_xg)
+
+    query = Shirt.query.options(selectinload(Shirt.images)).filter_by(destaque_promocao=True)
+    query = query.order_by(
+        case(
+            (estoque_total > 0, 0),
+            else_=1
+        ).asc(),
+        Shirt.ordem.asc(),
+        Shirt.id.desc()
+    )
+
+    if limite:
+        query = query.limit(limite)
+
+    return query.all()
+
+# Ordem de preferência das categorias na home; qualquer categoria nova cadastrada
+# no admin aparece automaticamente no fim, em ordem alfabética.
+ORDEM_CATEGORIAS_HOME = ['Brasileiros', 'Internacionais', 'Feminino', 'Manga Longa']
+
+
+def categorias_para_home():
+    linhas = db.session.query(Shirt.category).filter(Shirt.category.isnot(None)).distinct().all()
+    existentes = {c[0] for c in linhas if c[0]}
+    ordenadas = [c for c in ORDEM_CATEGORIAS_HOME if c in existentes]
+    extras = sorted(existentes - set(ORDEM_CATEGORIAS_HOME))
+    return ordenadas + extras
+
+
+def montar_secoes_home(por_categoria=10):
+    config = obter_configuracao()
+    secoes = []
+
+    promocoes = consultar_promocoes(limite=por_categoria)
+    ids_em_promocao = {s.id for s in promocoes}
+
+    if promocoes:
+        secoes.append({
+            'nome': 'Promoções',
+            'shirts': [montar_shirt_dict(s, config) for s in promocoes]
+        })
+
+    for categoria in categorias_para_home():
+        shirts = consultar_catalogo(categoria=categoria, limite=por_categoria, excluir_ids=ids_em_promocao)
+        if shirts:
+            secoes.append({
+                'nome': categoria,
+                'shirts': [montar_shirt_dict(s, config) for s in shirts]
+            })
+    return secoes
 
 
 @app.route('/')
 def index():
-    shirts = consultar_catalogo()
-    shirts_list = [montar_shirt_dict(s) for s in shirts]  # [ALTERADO 6]
-    return render_template('index.html', shirts=shirts_list)
+    secoes = montar_secoes_home()
+    return render_template('index.html', secoes=secoes)
 
 @app.route('/shirt/<int:id>')
 def shirt_detail(id):
-    shirt = Shirt.query.options(selectinload(Shirt.images)).filter_by(id=id).first_or_404()  # [ALTERADO 7]
-    return render_template('shirt_detail.html', shirt=montar_shirt_dict(shirt))  # [ALTERADO 6]
+    shirt = Shirt.query.options(selectinload(Shirt.images)).filter_by(id=id).first_or_404()
+    config = obter_configuracao()
+    return render_template('shirt_detail.html', shirt=montar_shirt_dict(shirt, config))
 
 @app.route('/login', methods=['GET', 'POST'])
 @limiter.limit("5 per minute", methods=["POST"])
@@ -209,6 +298,7 @@ def logout():
     logout_user()
     return redirect(url_for('index'))
 
+
 # Rota Admin: Gerenciar Catálogo
 @app.route('/admin', methods=['GET', 'POST'])
 @login_required
@@ -218,18 +308,22 @@ def admin():
         category = request.form.get('category')
         price = request.form.get('price')
         ordem = int(request.form.get('ordem', 0) or 0)
-        
+        desconto_pix = float(request.form.get('desconto_pix', 10) or 10)
+        destaque_promocao = request.form.get('destaque_promocao') == 'on'
+
         stock_p = int(request.form.get('stock_p', 0) or 0)
         stock_m = int(request.form.get('stock_m', 0) or 0)
         stock_g = int(request.form.get('stock_g', 0) or 0)
         stock_gg = int(request.form.get('stock_gg', 0) or 0)
         stock_xg = int(request.form.get('stock_xg', 0) or 0)
-        
+
         new_shirt = Shirt(
             title=title,
-            category=category, 
+            category=category,
             price=price,
             ordem=ordem,
+            desconto_pix=desconto_pix,
+            destaque_promocao=destaque_promocao,
             stock_p=stock_p,
             stock_m=stock_m,
             stock_g=stock_g,
@@ -238,7 +332,7 @@ def admin():
         )
         db.session.add(new_shirt)
         db.session.commit()
-        
+
         urls_texto = request.form.get('image_urls', '')
         for url in urls_texto.splitlines():
             url_limpa = url.strip()
@@ -247,9 +341,25 @@ def admin():
                 db.session.add(nova_foto)
         db.session.commit()
         return redirect(url_for('admin'))
-    
+
     shirts = Shirt.query.options(selectinload(Shirt.images)).order_by(Shirt.ordem.asc(), Shirt.id.desc()).all()  # [ALTERADO 7]
     return render_template('admin.html', shirts=shirts)
+
+
+@app.route('/admin/promocao', methods=['GET', 'POST'])
+@login_required
+def promocao():
+    config = obter_configuracao()
+    if request.method == 'POST':
+        config.promocao_ativa = request.form.get('promocao_ativa') == 'on'
+        config.promocao_percentual = float(request.form.get('promocao_percentual', 0) or 0)
+        categoria = request.form.get('promocao_categoria', '').strip()
+        config.promocao_categoria = categoria if categoria else None
+        db.session.commit()
+        flash('Configuração da promoção atualizada.')
+        return redirect(url_for('promocao'))
+    return render_template('promocao.html', config=config)
+
 
 # Rota para Deletar Produto
 @app.route('/admin/delete/<int:id>', methods=['POST'])
@@ -271,6 +381,8 @@ def edit_shirt(id):
         shirt.category = request.form.get('category')
         shirt.price = request.form.get('price')
         shirt.ordem = int(request.form.get('ordem', 0) or 0)
+        shirt.desconto_pix = float(request.form.get('desconto_pix', 10) or 10)
+        shirt.destaque_promocao = request.form.get('destaque_promocao') == 'on'
         shirt.stock_p = int(request.form.get('stock_p', 0) or 0)
         shirt.stock_m = int(request.form.get('stock_m', 0) or 0)
         shirt.stock_g = int(request.form.get('stock_g', 0) or 0)
@@ -300,9 +412,18 @@ def edit_shirt(id):
 # Rota para filtrar camisas por categoria
 @app.route('/categoria/<string:nome_categoria>')
 def filtrar_categoria(nome_categoria):
-    shirts = consultar_catalogo(categoria=nome_categoria)  # [ALTERADO 6 e 7]
-    shirts_list = [montar_shirt_dict(s) for s in shirts]
+    shirts = consultar_catalogo(categoria=nome_categoria)
+    config = obter_configuracao()
+    shirts_list = [montar_shirt_dict(s, config) for s in shirts]
     return render_template('index.html', shirts=shirts_list, categoria_atual=nome_categoria)
+
+@app.route('/promocoes')
+def ver_promocoes():
+    shirts = consultar_promocoes(limite=None)
+    config = obter_configuracao()
+    shirts_list = [montar_shirt_dict(s, config) for s in shirts]
+    return render_template('index.html', shirts=shirts_list, categoria_atual='Promoções')
+
 
 if __name__ == '__main__':
     with app.app_context():

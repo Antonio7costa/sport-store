@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Catálogo | Sport Store</title>
+    <meta name="description" content="Camisas de futebol linha tailandesa 1:1, times brasileiros e internacionais. Confira nosso catálogo.">
 
     <!-- [ALTERADO 1] Antes: <script src="...@tailwindcss/browser@4"></script> (gerava o CSS no navegador, lento).
          Agora: CSS já compilado, servido da pasta static. -->
@@ -25,6 +26,96 @@
     <svg class="{{ classe }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
     {%- endif -%}
 {%- endmacro %}
+
+{% macro cartao_camisa(shirt) %}
+<div class="h-full bg-slate-900 border border-slate-800 rounded-xl shadow-lg overflow-hidden flex flex-col group hover:border-emerald-500/50 transition-all duration-300">
+
+    <div class="relative block overflow-hidden aspect-square bg-slate-950 group/img">
+        <a href="/shirt/{{ shirt.id }}" class="block w-full h-full">
+            {% if shirt.image_url %}
+            <img id="main-image-{{ shirt.id }}"
+                 src="{{ shirt.image_url }}"
+                 alt="{{ shirt.title }}"
+                 width="400" height="400"
+                 decoding="async"
+                 loading="lazy"
+                 class="w-full h-full object-cover group-hover/img:scale-105 transition-transform duration-500 {% if not shirt.disponiveis %}brightness-50 grayscale{% endif %}">
+            {% endif %}
+        </a>
+
+        <div class="absolute top-2 left-2 bg-emerald-500 text-slate-950 text-[9px] font-black uppercase px-1.5 py-0.5 rounded tracking-wider shadow-md z-10 pointer-events-none">
+            1:1
+        </div>
+        {% if not shirt.disponiveis %}
+        <div class="absolute inset-0 flex items-center justify-center pointer-events-none z-20">
+            <span class="bg-slate-950/80 border border-red-500/50 text-red-400 font-black text-xs uppercase px-3 py-1 rounded-lg tracking-wider shadow-xl backdrop-blur-xs">
+                Esgotado
+            </span>
+        </div>
+        {% endif %}
+
+        {% if shirt.images and shirt.images|length > 1 %}
+        <button type="button" aria-label="Foto anterior" onclick="event.preventDefault(); mudarFotoCatalogo('{{ shirt.id }}', -1)" class="absolute left-1 top-1/2 -translate-y-1/2 bg-slate-950/80 hover:bg-emerald-500 hover:text-slate-950 text-white w-6 h-6 rounded-full flex items-center justify-center transition border border-slate-700/80 shadow opacity-0 group-hover/img:opacity-100 cursor-pointer z-20">
+            {{ icone('left', 'w-2.5 h-2.5') }}
+        </button>
+        <button type="button" aria-label="Próxima foto" onclick="event.preventDefault(); mudarFotoCatalogo('{{ shirt.id }}', 1)" class="absolute right-1 top-1/2 -translate-y-1/2 bg-slate-950/80 hover:bg-emerald-500 hover:text-slate-950 text-white w-6 h-6 rounded-full flex items-center justify-center transition border border-slate-700/80 shadow opacity-0 group-hover/img:opacity-100 cursor-pointer z-20">
+            {{ icone('right', 'w-2.5 h-2.5') }}
+        </button>
+        {% endif %}
+    </div>
+
+    <div class="p-2.5 sm:p-3 flex flex-col flex-grow justify-between gap-2">
+        <div>
+            <a href="/shirt/{{ shirt.id }}">
+                {% if shirt.category %}
+                <span class="text-[9px] sm:text-[10px] font-bold text-emerald-400 uppercase tracking-wider block mb-1">
+                    {{ shirt.category }}
+                </span>
+                {% endif %}
+                <h3 class="font-black text-xs sm:text-sm text-white mb-1.5 hover:text-emerald-400 transition uppercase italic line-clamp-2 leading-tight">
+                    {{ shirt.title }}
+                </h3>
+            </a>
+
+            <div class="bg-slate-950/60 p-2 rounded-lg border border-slate-800/80 mb-2 flex items-center justify-between gap-2">
+                <div>
+                    <div class="flex items-baseline gap-1 flex-wrap">
+                        <span class="text-sm sm:text-base font-black text-emerald-400 tracking-tight">
+                            {{ shirt.preco_pix }}
+                        </span>
+                        <span class="bg-emerald-500/10 text-emerald-400 text-[8px] font-bold uppercase px-1 rounded">
+                            PIX
+                        </span>
+                    </div>
+                    <div class="text-[9px] sm:text-[10px] text-slate-400">
+                        5x de {{ shirt.parcela_5x }} sem juros
+                    </div>
+                </div>
+                <a href="https://wa.me/5532984543471?text={{ ('Olá! Tenho interesse na camisa: ' ~ shirt.title)|urlencode }}" target="_blank" rel="noopener" aria-label="Chamar no WhatsApp" class="bg-emerald-500 hover:bg-emerald-400 text-slate-950 w-8 h-8 rounded-lg text-xs font-black transition flex items-center justify-center shrink-0 shadow-md shadow-emerald-500/20">
+                    {{ icone('whatsapp', 'w-4 h-4') }}
+                </a>
+            </div>
+
+            <div class="mb-2">
+                <div class="flex flex-wrap gap-1">
+                    {% for tam in shirt.todos_tamanhos %}
+                        {% if tam in shirt.disponiveis %}
+                            <div class="w-6 h-6 rounded bg-slate-800 border border-emerald-500/60 text-emerald-400 font-bold text-[10px] flex items-center justify-center">
+                                {{ tam }}
+                            </div>
+                        {% else %}
+                            <div class="w-6 h-6 rounded bg-slate-950 border border-slate-800 text-slate-700 font-medium text-[10px] flex items-center justify-center opacity-40 line-through">
+                                {{ tam }}
+                            </div>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endmacro %}
+
 
 <body class="bg-slate-950 text-slate-100 font-sans min-h-screen flex flex-col selection:bg-emerald-500 selection:text-white">
 
@@ -51,134 +142,54 @@
             </div>
         </div>
 
-        <!-- Barra de Filtros por Seção -->
-        <div class="flex gap-2 overflow-x-auto pb-2 scrollbar-none">
-            <a href="/" class="px-3 py-1.5 rounded-lg text-xs font-bold uppercase transition bg-slate-900 border border-slate-800 hover:border-emerald-500 text-white whitespace-nowrap">
-                Todas
-            </a>
-            <a href="/categoria/Brasileiros" class="px-3 py-1.5 rounded-lg text-xs font-bold uppercase transition bg-slate-900 border border-slate-800 hover:border-emerald-500 text-white whitespace-nowrap">
-                Brasileiros
-            </a>
-            <a href="/categoria/Internacionais" class="px-3 py-1.5 rounded-lg text-xs font-bold uppercase transition bg-slate-900 border border-slate-800 hover:border-emerald-500 text-white whitespace-nowrap">
-                Internacionais
-            </a>
-            <a href="/categoria/Feminino" class="px-3 py-1.5 rounded-lg text-xs font-bold uppercase transition bg-slate-900 border border-slate-800 hover:border-emerald-500 text-white whitespace-nowrap">
-                Feminino
-            </a>
-            <a href="/categoria/Manga Longa" class="px-3 py-1.5 rounded-lg text-xs font-bold uppercase transition bg-slate-900 border border-slate-800 hover:border-emerald-500 text-white whitespace-nowrap">
-                Manga Longa
-            </a>
+        {% if categoria_atual %}
+        <!-- Página de uma categoria específica (destino do "Ver todos") -->
+        <div class="flex items-center gap-3 px-1">
+            <a href="/" class="text-emerald-400 hover:text-white text-xs font-bold uppercase tracking-wider">← Todas as categorias</a>
         </div>
-        
-        <!-- Grid Alterada para 2 colunas no celular e até 4/5 colunas em telas maiores para caber mais produtos -->
         <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2.5 sm:gap-4 w-full">
             {% for shirt in shirts %}
-            <div class="bg-slate-900 border border-slate-800 rounded-xl shadow-lg overflow-hidden flex flex-col group hover:border-emerald-500/50 transition-all duration-300">
-
-                <!-- Imagem do Produto Compacta -->
-                <div class="relative block overflow-hidden aspect-square bg-slate-950 group/img">
-                    <a href="/shirt/{{ shirt.id }}" class="block w-full h-full">
-                        <!-- [ALTERADO 4] Só renderiza <img> se houver foto (antes gerava src="") -->
-                        {% if shirt.image_url %}
-                        <!-- [ALTERADO 5] width/height, decoding="async", lazy a partir da 5ª camisa,
-                             fetchpriority="high" na 1ª -->
-                        <img id="main-image-{{ shirt.id }}"
-                             src="{{ shirt.image_url }}"
-                             alt="{{ shirt.title }}"
-                             width="400" height="400"
-                             decoding="async"
-                             {% if loop.index > 4 %}loading="lazy"{% endif %}
-                             {% if loop.first %}fetchpriority="high"{% endif %}
-                             class="w-full h-full object-cover group-hover/img:scale-105 transition-transform duration-500 {% if not shirt.disponiveis %}brightness-50 grayscale{% endif %}">
-                        {% endif %}
-                    </a>
-                    
-                    <div class="absolute top-2 left-2 bg-emerald-500 text-slate-950 text-[9px] font-black uppercase px-1.5 py-0.5 rounded tracking-wider shadow-md z-10 pointer-events-none">
-                        1:1
-                    </div>
-                    <!-- AVISO DE ESGOTADO POR CIMA DA IMAGEM -->
-                    {% if not shirt.disponiveis %}
-                    <div class="absolute inset-0 flex items-center justify-center pointer-events-none z-20">
-                        <span class="bg-slate-950/80 border border-red-500/50 text-red-400 font-black text-xs uppercase px-3 py-1 rounded-lg tracking-wider shadow-xl backdrop-blur-xs">
-                            Esgotado
-                        </span>
-                    </div>
-                    {% endif %}
-
-                    <!-- Botões de Seta Compactos -->
-                    {% if shirt.images and shirt.images|length > 1 %}
-                    <button type="button" aria-label="Foto anterior" onclick="event.preventDefault(); mudarFotoCatalogo('{{ shirt.id }}', -1)" class="absolute left-1 top-1/2 -translate-y-1/2 bg-slate-950/80 hover:bg-emerald-500 hover:text-slate-950 text-white w-6 h-6 rounded-full flex items-center justify-center transition border border-slate-700/80 shadow opacity-0 group-hover/img:opacity-100 cursor-pointer z-20">
-                        {{ icone('left', 'w-2.5 h-2.5') }} <!-- [ALTERADO 2] -->
-                    </button>
-                    <button type="button" aria-label="Próxima foto" onclick="event.preventDefault(); mudarFotoCatalogo('{{ shirt.id }}', 1)" class="absolute right-1 top-1/2 -translate-y-1/2 bg-slate-950/80 hover:bg-emerald-500 hover:text-slate-950 text-white w-6 h-6 rounded-full flex items-center justify-center transition border border-slate-700/80 shadow opacity-0 group-hover/img:opacity-100 cursor-pointer z-20">
-                        {{ icone('right', 'w-2.5 h-2.5') }} <!-- [ALTERADO 2] -->
-                    </button>
-                    {% endif %}
-                </div>
-
-                <!-- Informações Reduzidas -->
-                <div class="p-2.5 sm:p-3 flex flex-col flex-grow justify-between gap-2">
-                    <div>
-                        <a href="/shirt/{{ shirt.id }}">
-                            {% if shirt.category %}
-                            <span class="text-[9px] sm:text-[10px] font-bold text-emerald-400 uppercase tracking-wider block mb-1">
-                                {{ shirt.category }}
-                            </span>
-                            {% endif %}
-                            
-                            <h3 class="font-black text-xs sm:text-sm text-white mb-1.5 hover:text-emerald-400 transition uppercase italic line-clamp-2 leading-tight">
-                                {{ shirt.title }}
-                            </h3>
-                        </a>
-
-                        <!-- Preço Compacto com Botão Lateral Perfeito -->
-                        <div class="bg-slate-950/60 p-2 rounded-lg border border-slate-800/80 mb-2 flex items-center justify-between gap-2">
-                            <div>
-                                <div class="flex items-baseline gap-1 flex-wrap">
-                                    <span class="text-sm sm:text-base font-black text-emerald-400 tracking-tight">
-                                        {{ shirt.preco_pix }}
-                                    </span>
-                                    <span class="bg-emerald-500/10 text-emerald-400 text-[8px] font-bold uppercase px-1 rounded">
-                                        PIX
-                                    </span>
-                                </div>
-                                <div class="text-[9px] sm:text-[10px] text-slate-400">
-                                    5x de {{ shirt.parcela_5x }} sem juros
-                                </div>
-                            </div>
-
-                            <!-- [ALTERADO 6] texto do WhatsApp com |urlencode -->
-                            <a href="https://wa.me/5532984543471?text={{ ('Olá! Tenho interesse na camisa: ' ~ shirt.title)|urlencode }}" target="_blank" rel="noopener" aria-label="Chamar no WhatsApp" class="bg-emerald-500 hover:bg-emerald-400 text-slate-950 w-8 h-8 rounded-lg text-xs font-black transition flex items-center justify-center shrink-0 shadow-md shadow-emerald-500/20">
-                                {{ icone('whatsapp', 'w-4 h-4') }} <!-- [ALTERADO 2] -->
-                            </a>
-                        </div>
-
-                        <!-- Tamanhos Menores -->
-                        <div class="mb-2">
-                            <div class="flex flex-wrap gap-1">
-                                {% for tam in shirt.todos_tamanhos %}
-                                    {% if tam in shirt.disponiveis %}
-                                        <div class="w-6 h-6 rounded bg-slate-800 border border-emerald-500/60 text-emerald-400 font-bold text-[10px] flex items-center justify-center">
-                                            {{ tam }}
-                                        </div>
-                                    {% else %}
-                                        <div class="w-6 h-6 rounded bg-slate-950 border border-slate-800 text-slate-700 font-medium text-[10px] flex items-center justify-center opacity-40 line-through">
-                                            {{ tam }}
-                                        </div>
-                                    {% endif %}
-                                {% endfor %}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
+                {{ cartao_camisa(shirt) }}
             {% else %}
             <div class="col-span-full text-center py-16 bg-slate-900 border border-slate-800 rounded-2xl">
-                <div class="flex justify-center text-slate-600 mb-3">{{ icone('shirt', 'w-10 h-10') }}</div> <!-- [ALTERADO 2] -->
-                <p class="text-slate-400 font-semibold uppercase tracking-wider text-xs">Nenhuma camisa cadastrada.</p>
+                <div class="flex justify-center text-slate-600 mb-3">{{ icone('shirt', 'w-10 h-10') }}</div>
+                <p class="text-slate-400 font-semibold uppercase tracking-wider text-xs">Nenhuma camisa nessa categoria.</p>
             </div>
             {% endfor %}
         </div>
+    {% else %}
+        <!-- Home: prévias por categoria -->
+        {% for secao in secoes %}
+        <section class="flex flex-col gap-3 {% if not loop.first %}pt-4 border-t border-slate-800/70{% endif %}">
+            <div class="flex items-center justify-between px-1">
+                <h2 class="text-lg sm:text-xl font-black uppercase italic text-white">{{ secao.nome }}</h2>
+                <a href="{{ url_for('ver_promocoes') if secao.nome == 'Promoções' else url_for('filtrar_categoria', nome_categoria=secao.nome) }}" class="text-emerald-400 hover:text-white text-xs font-bold uppercase tracking-wider transition shrink-0">Ver todos →</a>
+            </div>
+
+            <div class="relative">
+                <div id="scroll-{{ secao.nome|replace(' ', '-') }}" class="flex gap-2.5 sm:gap-4 overflow-x-auto scroll-smooth snap-x snap-mandatory scrollbar-none pb-1">
+                    {% for shirt in secao.shirts %}
+                    <div class="w-[44%] sm:w-[30%] md:w-[22%] lg:w-[18%] shrink-0 snap-start">
+                        {{ cartao_camisa(shirt) }}
+                    </div>
+                    {% endfor %}
+                </div>
+
+                <button type="button" aria-label="Ver mais camisas à esquerda" onclick="rolarSecao('scroll-{{ secao.nome|replace(' ', '-') }}', -1)" class="hidden sm:flex absolute -left-3 top-1/2 -translate-y-1/2 bg-slate-900 hover:bg-emerald-500 hover:text-slate-950 text-white w-8 h-8 rounded-full items-center justify-center border border-slate-700 shadow-lg z-10 cursor-pointer">
+                    {{ icone('left', 'w-3.5 h-3.5') }}
+                </button>
+                <button type="button" aria-label="Ver mais camisas à direita" onclick="rolarSecao('scroll-{{ secao.nome|replace(' ', '-') }}', 1)" class="hidden sm:flex absolute -right-3 top-1/2 -translate-y-1/2 bg-slate-900 hover:bg-emerald-500 hover:text-slate-950 text-white w-8 h-8 rounded-full items-center justify-center border border-slate-700 shadow-lg z-10 cursor-pointer">
+                    {{ icone('right', 'w-3.5 h-3.5') }}
+                </button>
+            </div>
+        </section>
+        {% else %}
+        <div class="text-center py-16 bg-slate-900 border border-slate-800 rounded-2xl">
+            <div class="flex justify-center text-slate-600 mb-3">{{ icone('shirt', 'w-10 h-10') }}</div>
+            <p class="text-slate-400 font-semibold uppercase tracking-wider text-xs">Nenhuma camisa cadastrada.</p>
+        </div>
+        {% endfor %}
+    {% endif %}
     </main>
 
     <!-- Footer com Endereço -->
@@ -193,6 +204,7 @@
     </footer>
 
     <script>
+        {% set shirts = shirts if categoria_atual else secoes|map(attribute='shirts')|sum(start=[]) %}
         const galeriasCatalogo = {
             {% for shirt in shirts %}
                 "{{ shirt.id }}": [
@@ -204,6 +216,14 @@
         };
 
         const indicesAtuaisCatalogo = {};
+
+        function rolarSecao(id, direcao) {
+        const container = document.getElementById(id);
+        if (!container) return;
+        const primeiroCard = container.querySelector(':scope > div');
+        const largura = primeiroCard ? primeiroCard.offsetWidth + 16 : 300;
+        container.scrollBy({ left: direcao * largura * 2, behavior: 'smooth' });
+        }
 
         function mudarFotoCatalogo(shirtId, direcao) {
             const imagens = galeriasCatalogo[shirtId];

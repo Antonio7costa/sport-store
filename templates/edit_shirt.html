@@ -34,6 +34,14 @@
                     <input type="number" name="ordem" value="{{ shirt.ordem if shirt else 0 }}" class="w-full bg-slate-950 border border-slate-800 p-2.5 rounded-xl text-white text-sm focus:border-emerald-500 outline-none">
                     <span class="text-[10px] text-slate-500 block mt-1">Menor número aparece primeiro no site (Ex: 1, 2, 3...).</span>
                 </div>
+                <div>
+                    <label class="block text-xs font-bold uppercase text-slate-400 mb-1">Desconto à vista / PIX (%)</label>
+                    <input type="number" step="0.1" min="0" max="100" name="desconto_pix" value="{{ shirt.desconto_pix }}" class="w-full bg-slate-950 border border-slate-800 p-2.5 rounded-xl text-white text-sm focus:border-emerald-500 outline-none">
+                </div>
+                <label class="flex items-center gap-2 text-xs font-bold text-slate-600 md:col-span-2">
+                    <input type="checkbox" name="destaque_promocao" {% if shirt.destaque_promocao %}checked{% endif %} class="w-4 h-4 accent-emerald-500">
+                    Destacar na seção "Promoções" da home
+                </label>
                 <div class="md:col-span-2 border p-4 rounded bg-gray-50">
                     <span class="text-sm font-semibold text-slate-700 block mb-3">Quantidade em estoque por tamanho:</span>
                     <div class="grid grid-cols-5 gap-3">
