@@ -19,7 +19,6 @@
         <div class="bg-white p-6 rounded-lg shadow-md mb-8">
             <h2 class="text-lg font-bold mb-4 text-slate-800">Adicionar Nova Camisa</h2>
             <form method="POST" class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <!-- [ALTERADO 5] token CSRF: obrigatório em todo <form method="POST"> -->
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <input type="text" name="title" placeholder="Nome (Ex: Camisa Real Madrid 24/25)" required class="border p-2 rounded">
                 <div>
@@ -79,37 +78,121 @@
             </form>
         </div>
 
-        <div class="bg-white p-6 rounded-lg shadow-md">
-            <h2 class="text-lg font-bold mb-4 text-slate-800">Camisas Cadastradas</h2>
-            <div class="flex flex-col gap-3">
-                {% for shirt in shirts %}
-                <div class="flex justify-between items-center border-b pb-3">
-                    <div class="flex items-center gap-3">
-                        <!-- [ALTERADO 3] Só cria o <img> se houver foto (sem src=""), com lazy loading e tamanho fixo -->
-                        {% if shirt.images %}
-                        <img src="{{ shirt.images[0].image_url }}" alt="{{ shirt.title }}" width="48" height="48" loading="lazy" decoding="async" class="w-12 h-12 object-cover rounded bg-gray-100">
-                        {% else %}
-                        <div class="w-12 h-12 rounded bg-gray-100"></div>
-                        {% endif %}
-                        <div>
-                            <p class="font-bold text-slate-800">{{ shirt.title }}</p>
-                            <p class="text-xs text-gray-500">{{ shirt.price }}</p>
-                        </div>
+        <div class="bg-white p-6 rounded-lg shadow-md mb-8 border-2 border-amber-400">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-lg font-bold text-slate-800">Alterações Pendentes</h2>
+                {% if pendentes %}
+                <form method="POST" action="/admin/publicar" onsubmit="return confirm('Publicar todas as {{ pendentes|length }} alteração(ões) pendente(s)? Isso vai pro site na hora.')">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="bg-emerald-600 text-white text-sm font-bold px-4 py-2 rounded hover:bg-emerald-500">Publicar tudo ({{ pendentes|length }})</button>
+                </form>
+                {% endif %}
+            </div>
+
+            {% if pendentes %}
+            <div class="flex flex-col gap-2 mb-5">
+                {% for shirt in pendentes %}
+                <div class="flex justify-between items-center border-b pb-2">
+                    <div class="flex items-center gap-2">
+                        <span class="text-[10px] font-bold uppercase px-2 py-0.5 rounded {% if not shirt.publicado %}bg-blue-100 text-blue-700{% else %}bg-amber-100 text-amber-700{% endif %}">
+                            {% if not shirt.publicado %}Novo{% else %}Editado{% endif %}
+                        </span>
+                        <p class="font-semibold text-slate-800 text-sm">{{ shirt.title or '(sem nome ainda)' }}</p>
                     </div>
-                    <div class="flex items-center gap-3">
-                        <a href="/admin/edit/{{ shirt.id }}" class="text-indigo-600 text-sm font-semibold hover:underline">Editar</a>
-                        <!-- [ALTERADO 4] Antes era um link (GET). Agora é um formulário POST com token CSRF,
-                             para não poder ser disparado por outro site. O texto e a confirmação continuam iguais. -->
-                        <form method="POST" action="/admin/delete/{{ shirt.id }}" onsubmit="return confirm('Excluir esta camisa? Esta ação não pode ser desfeita.')">
-                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                            <button type="submit" class="text-red-600 text-sm font-semibold hover:underline cursor-pointer bg-transparent border-none p-0">Excluir</button>
-                        </form>
-                    </div>
+                    <a href="/admin/edit/{{ shirt.id }}" class="text-indigo-600 text-sm font-semibold hover:underline">Editar</a>
                 </div>
-                {% else %}
-                <p class="text-gray-500 text-sm">Nenhum produto cadastrado.</p>
                 {% endfor %}
             </div>
+            {% else %}
+            <p class="text-gray-500 text-sm mb-5">Nenhuma alteração pendente. Tudo que está aqui já está publicado.</p>
+            {% endif %}
+
+            <div class="border-t pt-4">
+                <span class="text-sm font-semibold text-slate-700 block mb-2">Aplicar a uma categoria inteira (fica pendente também):</span>
+                <form method="POST" action="/admin/aplicar-categoria" class="flex flex-wrap items-end gap-3">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div>
+                        <label class="block text-xs font-bold text-gray-400 mb-1">Categoria</label>
+                        <select name="categoria" class="bg-slate-950 border border-slate-800 p-2 rounded-lg text-white text-sm">
+                            <option value="">Selecione...</option>
+                            <option value="Brasileiros">Brasileiros</option>
+                            <option value="Internacionais">Internacionais</option>
+                            <option value="Feminino">Feminino</option>
+                            <option value="Manga Longa">Manga Longa</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-400 mb-1">Novo desconto Pix (%)</label>
+                        <input type="number" step="0.1" min="0" max="100" name="desconto_pix" placeholder="deixe em branco p/ não mudar" class="bg-slate-950 border border-slate-800 p-2 rounded-lg text-white text-sm w-48">
+                    </div>
+                    <label class="flex items-center gap-2 text-xs font-bold text-slate-600 mb-2">
+                        <input type="checkbox" name="destaque_promocao" class="w-4 h-4 accent-emerald-500">
+                        Destacar em "Promoções"
+                    </label>
+                    <button type="submit" class="bg-slate-800 text-white text-sm font-semibold px-4 py-2 rounded hover:bg-slate-700">Marcar categoria como pendente</button>
+                </form>
+            </div>
+        </div>
+
+
+        <div class="bg-white p-6 rounded-lg shadow-md mb-8">
+            <h2 class="text-lg font-bold mb-4 text-slate-800">Em Promoção Agora</h2>
+            {% if em_promocao %}
+            <div class="flex flex-col gap-2">
+                {% for shirt in em_promocao %}
+                <div class="flex justify-between items-center border-b pb-2">
+                    <div class="flex items-center gap-2">
+                        <p class="font-semibold text-slate-800 text-sm">{{ shirt.title }}</p>
+                        {% if shirt.alteracoes_pendentes and 'destaque_promocao' in shirt.alteracoes_pendentes %}
+                        <span class="text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-amber-100 text-amber-700">Pendente</span>
+                        {% endif %}
+                    </div>
+                    <form method="POST" action="/admin/remover-promocao/{{ shirt.id }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button type="submit" class="text-red-600 text-sm font-semibold hover:underline cursor-pointer bg-transparent border-none p-0">Tirar da promoção</button>
+                    </form>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p class="text-gray-500 text-sm">Nenhuma camisa em promoção no momento.</p>
+            {% endif %}
+        </div>
+
+
+        <div class="bg-white p-6 rounded-lg shadow-md">
+            <h2 class="text-lg font-bold mb-4 text-slate-800">Camisas Publicadas</h2>
+            {% for secao in publicadas_por_categoria %}
+            <div class="mb-6">
+                <h3 class="text-sm font-black uppercase text-emerald-600 tracking-wider mb-2">{{ secao.nome }}</h3>
+                <div class="flex flex-col gap-3">
+                    {% for shirt in secao.shirts %}
+                    <div class="flex justify-between items-center border-b pb-3">
+                        <div class="flex items-center gap-3">
+                            {% if shirt.images %}
+                            <img src="{{ shirt.images[0].image_url }}" alt="{{ shirt.title }}" width="48" height="48" loading="lazy" decoding="async" class="w-12 h-12 object-cover rounded bg-gray-100">
+                            {% else %}
+                            <div class="w-12 h-12 rounded bg-gray-100"></div>
+                            {% endif %}
+                            <div>
+                                <p class="font-bold text-slate-800">{{ shirt.title }}{% if shirt.alteracoes_pendentes %} <span class="text-amber-600 text-xs font-bold">(editado, pendente)</span>{% endif %}</p>
+                                <p class="text-xs text-gray-500">{{ shirt.price }}</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <a href="/admin/edit/{{ shirt.id }}" class="text-indigo-600 text-sm font-semibold hover:underline">Editar</a>
+                            <form method="POST" action="/admin/delete/{{ shirt.id }}" onsubmit="return confirm('Excluir esta camisa? Esta ação não pode ser desfeita.')">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <button type="submit" class="text-red-600 text-sm font-semibold hover:underline cursor-pointer bg-transparent border-none p-0">Excluir</button>
+                            </form>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% else %}
+            <p class="text-gray-500 text-sm">Nenhuma camisa publicada ainda.</p>
+            {% endfor %}
         </div>
     </main>
 </body>

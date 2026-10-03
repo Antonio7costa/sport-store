@@ -14,32 +14,49 @@
 
     <main class="max-w-4xl mx-auto p-6">
         <div class="bg-white p-6 rounded-lg shadow-md">
-            <h2 class="text-lg font-bold mb-4 text-slate-800">Editando: {{ shirt.title }}</h2>
+            <h2 class="text-lg font-bold mb-2 text-slate-800">Editando: {{ shirt.title }}</h2>
+
+            {% if shirt.publicado %}
+                {% if shirt.alteracoes_pendentes %}
+                <div class="bg-amber-50 border border-amber-300 text-amber-800 text-xs font-semibold rounded-lg px-3 py-2 mb-4">
+                    Esta camisa já está publicada e já tem um rascunho salvo. O que você vê abaixo é esse rascunho, não o que está no ar agora. Suas mudanças continuam como rascunho até você publicar.
+                </div>
+                {% else %}
+                <div class="bg-blue-50 border border-blue-300 text-blue-800 text-xs font-semibold rounded-lg px-3 py-2 mb-4">
+                    Esta camisa já está publicada. Qualquer alteração aqui vai ficar como rascunho, pendente, até você publicar.
+                </div>
+                {% endif %}
+            {% else %}
+            <div class="bg-slate-100 border border-slate-300 text-slate-700 text-xs font-semibold rounded-lg px-3 py-2 mb-4">
+                Esta camisa ainda não foi publicada. Qualquer alteração aqui é salva direto, sem passar por rascunho.
+            </div>
+            {% endif %}
+
             <form method="POST" class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <input type="text" name="title" value="{{ shirt.title }}" placeholder="Nome" required class="border p-2 rounded">
+                <input type="text" name="title" value="{{ dados_exibicao.title }}" placeholder="Nome" required class="border p-2 rounded">
                 <div>
                     <label class="block text-xs font-bold text-gray-400 mb-1">Categoria Principal</label>
                     <select name="category" class="w-full bg-slate-950 border border-slate-800 p-2.5 rounded-xl text-white text-sm">
-                        <option value="" {% if not shirt.category %}selected{% endif %}>Selecione uma categoria...</option>
-                        <option value="Brasileiros" {% if shirt.category == 'Brasileiros' %}selected{% endif %}>Brasileiros</option>
-                        <option value="Internacionais" {% if shirt.category == 'Internacionais' %}selected{% endif %}>Internacionais</option>
-                        <option value="Feminino" {% if shirt.category == 'Feminino' %}selected{% endif %}>Feminino</option>
-                        <option value="Manga Longa" {% if shirt.category == 'Manga Longa' %}selected{% endif %}>Manga Longa</option>
+                        <option value="" {% if not dados_exibicao.category %}selected{% endif %}>Selecione uma categoria...</option>
+                        <option value="Brasileiros" {% if dados_exibicao.category == 'Brasileiros' %}selected{% endif %}>Brasileiros</option>
+                        <option value="Internacionais" {% if dados_exibicao.category == 'Internacionais' %}selected{% endif %}>Internacionais</option>
+                        <option value="Feminino" {% if dados_exibicao.category == 'Feminino' %}selected{% endif %}>Feminino</option>
+                        <option value="Manga Longa" {% if dados_exibicao.category == 'Manga Longa' %}selected{% endif %}>Manga Longa</option>
                     </select>
                 </div>
-                <input type="text" name="price" value="{{ shirt.price }}" placeholder="Preço" required class="border p-2 rounded">
+                <input type="text" name="price" value="{{ dados_exibicao.price }}" placeholder="Preço" required class="border p-2 rounded">
                 <div>
                     <label class="block text-xs font-bold uppercase text-slate-400 mb-1">Ordem / Prioridade de Exibição</label>
-                    <input type="number" name="ordem" value="{{ shirt.ordem if shirt else 0 }}" class="w-full bg-slate-950 border border-slate-800 p-2.5 rounded-xl text-white text-sm focus:border-emerald-500 outline-none">
+                    <input type="number" name="ordem" value="{{ dados_exibicao.ordem }}" class="w-full bg-slate-950 border border-slate-800 p-2.5 rounded-xl text-white text-sm focus:border-emerald-500 outline-none">
                     <span class="text-[10px] text-slate-500 block mt-1">Menor número aparece primeiro no site (Ex: 1, 2, 3...).</span>
                 </div>
                 <div>
                     <label class="block text-xs font-bold uppercase text-slate-400 mb-1">Desconto à vista / PIX (%)</label>
-                    <input type="number" step="0.1" min="0" max="100" name="desconto_pix" value="{{ shirt.desconto_pix }}" class="w-full bg-slate-950 border border-slate-800 p-2.5 rounded-xl text-white text-sm focus:border-emerald-500 outline-none">
+                    <input type="number" step="0.1" min="0" max="100" name="desconto_pix" value="{{ dados_exibicao.desconto_pix }}" class="w-full bg-slate-950 border border-slate-800 p-2.5 rounded-xl text-white text-sm focus:border-emerald-500 outline-none">
                 </div>
                 <label class="flex items-center gap-2 text-xs font-bold text-slate-600 md:col-span-2">
-                    <input type="checkbox" name="destaque_promocao" {% if shirt.destaque_promocao %}checked{% endif %} class="w-4 h-4 accent-emerald-500">
+                    <input type="checkbox" name="destaque_promocao" {% if dados_exibicao.destaque_promocao %}checked{% endif %} class="w-4 h-4 accent-emerald-500">
                     Destacar na seção "Promoções" da home
                 </label>
                 <div class="md:col-span-2 border p-4 rounded bg-gray-50">
@@ -47,29 +64,29 @@
                     <div class="grid grid-cols-5 gap-3">
                         <div>
                             <label class="block text-xs font-bold text-gray-600 mb-1">P</label>
-                            <input type="number" name="stock_p" value="{{ shirt.stock_p if shirt else 0 }}" min="0" class="w-full border p-2 rounded text-center">
+                            <input type="number" name="stock_p" value="{{ dados_exibicao.stock_p }}" min="0" class="w-full border p-2 rounded text-center">
                         </div>
                         <div>
                             <label class="block text-xs font-bold text-gray-600 mb-1">M</label>
-                            <input type="number" name="stock_m" value="{{ shirt.stock_m if shirt else 0 }}" min="0" class="w-full border p-2 rounded text-center">
+                            <input type="number" name="stock_m" value="{{ dados_exibicao.stock_m }}" min="0" class="w-full border p-2 rounded text-center">
                         </div>
                         <div>
                             <label class="block text-xs font-bold text-gray-600 mb-1">G</label>
-                            <input type="number" name="stock_g" value="{{ shirt.stock_g if shirt else 0 }}" min="0" class="w-full border p-2 rounded text-center">
+                            <input type="number" name="stock_g" value="{{ dados_exibicao.stock_g }}" min="0" class="w-full border p-2 rounded text-center">
                         </div>
                         <div>
                             <label class="block text-xs font-bold text-gray-600 mb-1">GG</label>
-                            <input type="number" name="stock_gg" value="{{ shirt.stock_gg if shirt else 0 }}" min="0" class="w-full border p-2 rounded text-center">
+                            <input type="number" name="stock_gg" value="{{ dados_exibicao.stock_gg }}" min="0" class="w-full border p-2 rounded text-center">
                         </div>
                         <div>
                             <label class="block text-xs font-bold text-gray-600 mb-1">XG</label>
-                            <input type="number" name="stock_xg" value="{{ shirt.stock_xg if shirt else 0 }}" min="0" class="w-full border p-2 rounded text-center">
+                            <input type="number" name="stock_xg" value="{{ dados_exibicao.stock_xg }}" min="0" class="w-full border p-2 rounded text-center">
                         </div>
                     </div>
                 </div>
                 <div class="md:col-span-2">
                     <label class="block text-xs font-bold text-gray-400 mb-1">Links das Fotos (Cole uma URL por linha):</label>
-                    <textarea name="image_urls" rows="4" spellcheck="false" autocomplete="off" placeholder="Cole uma URL por linha" class="w-full bg-slate-950 border border-slate-800 p-2.5 rounded-xl text-white text-sm">{% for img in shirt.images %}{{ img.image_url }}{% if not loop.last %}&#10;{% endif %}{% endfor %}</textarea>
+                    <textarea name="image_urls" rows="4" spellcheck="false" autocomplete="off" placeholder="Cole uma URL por linha" class="w-full bg-slate-950 border border-slate-800 p-2.5 rounded-xl text-white text-sm">{% if shirt.alteracoes_pendentes and shirt.alteracoes_pendentes.image_urls %}{% for url in shirt.alteracoes_pendentes.image_urls %}{{ url }}{% if not loop.last %}&#10;{% endif %}{% endfor %}{% else %}{% for img in shirt.images %}{{ img.image_url }}{% if not loop.last %}&#10;{% endif %}{% endfor %}{% endif %}</textarea>
                 </div>
                 <button type="submit" class="bg-indigo-600 text-white p-2 rounded font-semibold hover:bg-indigo-700 md:col-span-2">Salvar Alterações</button>
             </form>

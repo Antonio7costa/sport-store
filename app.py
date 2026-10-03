@@ -81,6 +81,8 @@ class Shirt(db.Model):
     price = db.Column(db.String(20), nullable=False)
     desconto_pix = db.Column(db.Float, default=10.0, nullable=False)
     destaque_promocao = db.Column(db.Boolean, default=False, nullable=False)
+    publicado = db.Column(db.Boolean, default=True, nullable=False)
+    alteracoes_pendentes = db.Column(db.JSON, nullable=True)
     stock_p = db.Column(db.Integer, default=0, nullable=False)
     stock_m = db.Column(db.Integer, default=0, nullable=False)
     stock_g = db.Column(db.Integer, default=0, nullable=False)
@@ -162,10 +164,16 @@ def montar_shirt_dict(shirt):
     }
 
 
+def destaque_efetivo(shirt):
+    if shirt.alteracoes_pendentes and 'destaque_promocao' in shirt.alteracoes_pendentes:
+        return shirt.alteracoes_pendentes['destaque_promocao']
+    return shirt.destaque_promocao
+
+
 def consultar_catalogo(categoria=None, limite=None, excluir_ids=None):
     estoque_total = (Shirt.stock_p + Shirt.stock_m + Shirt.stock_g + Shirt.stock_gg + Shirt.stock_xg)
 
-    query = Shirt.query.options(selectinload(Shirt.images))
+    query = Shirt.query.options(selectinload(Shirt.images)).filter_by(publicado=True)
     if categoria:
         query = query.filter_by(category=categoria)
     if excluir_ids:
@@ -189,7 +197,7 @@ def consultar_catalogo(categoria=None, limite=None, excluir_ids=None):
 def consultar_promocoes(limite=10):
     estoque_total = (Shirt.stock_p + Shirt.stock_m + Shirt.stock_g + Shirt.stock_gg + Shirt.stock_xg)
 
-    query = Shirt.query.options(selectinload(Shirt.images)).filter_by(destaque_promocao=True)
+    query = Shirt.query.options(selectinload(Shirt.images)).filter_by(destaque_promocao=True, publicado=True)
     query = query.order_by(
         case(
             (estoque_total > 0, 0),
@@ -246,7 +254,7 @@ def index():
 
 @app.route('/shirt/<int:id>')
 def shirt_detail(id):
-    shirt = Shirt.query.options(selectinload(Shirt.images)).filter_by(id=id).first_or_404()
+    shirt = Shirt.query.options(selectinload(Shirt.images)).filter_by(id=id, publicado=True).first_or_404()
     return render_template('shirt_detail.html', shirt=montar_shirt_dict(shirt))
 
 @app.route('/login', methods=['GET', 'POST'])
@@ -297,6 +305,7 @@ def admin():
             ordem=ordem,
             desconto_pix=desconto_pix,
             destaque_promocao=destaque_promocao,
+            publicado=False,
             stock_p=stock_p,
             stock_m=stock_m,
             stock_g=stock_g,
@@ -315,8 +324,24 @@ def admin():
         db.session.commit()
         return redirect(url_for('admin'))
 
-    shirts = Shirt.query.options(selectinload(Shirt.images)).order_by(Shirt.ordem.asc(), Shirt.id.desc()).all()  # [ALTERADO 7]
-    return render_template('admin.html', shirts=shirts)
+    todas = Shirt.query.options(selectinload(Shirt.images)).order_by(Shirt.ordem.asc(), Shirt.id.desc()).all()
+
+    pendentes = [s for s in todas if not s.publicado or s.alteracoes_pendentes]
+    em_promocao = [s for s in todas if s.publicado and destaque_efetivo(s)]
+
+    categorias_existentes = []
+    for s in todas:
+        nome = s.category or 'Sem categoria'
+        if nome not in categorias_existentes:
+            categorias_existentes.append(nome)
+
+    publicadas_por_categoria = []
+    for nome in categorias_existentes:
+        shirts_categoria = [s for s in todas if s.publicado and (s.category or 'Sem categoria') == nome]
+        if shirts_categoria:
+            publicadas_por_categoria.append({'nome': nome, 'shirts': shirts_categoria})
+
+    return render_template('admin.html', pendentes=pendentes, em_promocao=em_promocao, publicadas_por_categoria=publicadas_por_categoria)
 
 
 # Rota para Deletar Produto
@@ -333,39 +358,129 @@ def delete_shirt(id):
 @login_required
 def edit_shirt(id):
     shirt = Shirt.query.get_or_404(id)
-    
+
     if request.method == 'POST':
-        shirt.title = request.form.get('title')
-        shirt.category = request.form.get('category')
-        shirt.price = request.form.get('price')
-        shirt.ordem = int(request.form.get('ordem', 0) or 0)
-        shirt.desconto_pix = float(request.form.get('desconto_pix', 10) or 10)
-        shirt.destaque_promocao = request.form.get('destaque_promocao') == 'on'
-        shirt.stock_p = int(request.form.get('stock_p', 0) or 0)
-        shirt.stock_m = int(request.form.get('stock_m', 0) or 0)
-        shirt.stock_g = int(request.form.get('stock_g', 0) or 0)
-        shirt.stock_gg = int(request.form.get('stock_gg', 0) or 0)
-        shirt.stock_xg = int(request.form.get('stock_xg', 0) or 0)
-        
-        # Pega os links digitados na textarea
+        novos_dados = {
+            'title': request.form.get('title'),
+            'category': request.form.get('category'),
+            'price': request.form.get('price'),
+            'ordem': int(request.form.get('ordem', 0) or 0),
+            'desconto_pix': float(request.form.get('desconto_pix', 10) or 10),
+            'destaque_promocao': request.form.get('destaque_promocao') == 'on',
+            'stock_p': int(request.form.get('stock_p', 0) or 0),
+            'stock_m': int(request.form.get('stock_m', 0) or 0),
+            'stock_g': int(request.form.get('stock_g', 0) or 0),
+            'stock_gg': int(request.form.get('stock_gg', 0) or 0),
+            'stock_xg': int(request.form.get('stock_xg', 0) or 0),
+        }
+
         urls_texto = request.form.get('image_urls', '')
-        
-        # Se o usuário preencheu algo, atualiza a lista de imagens
         if urls_texto.strip():
-            # 1. Apaga todas as imagens antigas desta camisa para evitar duplicação
-            ShirtImage.query.filter_by(shirt_id=shirt.id).delete()
-            
-            # 2. Adiciona apenas os links limpos que estão escritos agora na caixa
-            for url in urls_texto.splitlines():
-                url_limpa = url.strip()
-                if url_limpa:
-                    nova_foto = ShirtImage(image_url=url_limpa, shirt_id=shirt.id)
-                    db.session.add(nova_foto)
-                    
+            novos_dados['image_urls'] = [u.strip() for u in urls_texto.splitlines() if u.strip()]
+
+        if shirt.publicado:
+            # já está no ar: guarda como rascunho, não mexe no que o cliente vê
+            shirt.alteracoes_pendentes = novos_dados
+        else:
+            # ainda não publicada: pode gravar direto, ninguém vê mesmo
+            for campo, valor in novos_dados.items():
+                if campo == 'image_urls':
+                    ShirtImage.query.filter_by(shirt_id=shirt.id).delete()
+                    for url in valor:
+                        db.session.add(ShirtImage(image_url=url, shirt_id=shirt.id))
+                else:
+                    setattr(shirt, campo, valor)
+
         db.session.commit()
         return redirect(url_for('admin'))
-        
-    return render_template('edit_shirt.html', shirt=shirt)
+
+    dados_exibicao = {
+        'title': shirt.title,
+        'category': shirt.category,
+        'price': shirt.price,
+        'ordem': shirt.ordem,
+        'desconto_pix': shirt.desconto_pix,
+        'destaque_promocao': shirt.destaque_promocao,
+        'stock_p': shirt.stock_p,
+        'stock_m': shirt.stock_m,
+        'stock_g': shirt.stock_g,
+        'stock_gg': shirt.stock_gg,
+        'stock_xg': shirt.stock_xg,
+    }
+    if shirt.alteracoes_pendentes:
+        dados_exibicao.update(shirt.alteracoes_pendentes)
+
+    return render_template('edit_shirt.html', shirt=shirt, dados_exibicao=dados_exibicao)
+
+
+@app.route('/admin/publicar', methods=['POST'])
+@login_required
+def publicar():
+    novas = Shirt.query.filter_by(publicado=False).all()
+    for camisa in novas:
+        camisa.publicado = True
+
+    com_rascunho = [s for s in Shirt.query.all() if s.alteracoes_pendentes]
+    for camisa in com_rascunho:
+        dados = dict(camisa.alteracoes_pendentes)
+        if 'image_urls' in dados:
+            ShirtImage.query.filter_by(shirt_id=camisa.id).delete()
+            for url in dados.pop('image_urls'):
+                db.session.add(ShirtImage(image_url=url, shirt_id=camisa.id))
+        for campo, valor in dados.items():
+            setattr(camisa, campo, valor)
+        camisa.alteracoes_pendentes = None
+
+    db.session.commit()
+    flash(f'{len(novas) + len(com_rascunho)} camisa(s) publicada(s) com sucesso!')
+    return redirect(url_for('admin'))
+
+
+@app.route('/admin/aplicar-categoria', methods=['POST'])
+@login_required
+def aplicar_categoria():
+    categoria = request.form.get('categoria', '').strip()
+    desconto_pix = request.form.get('desconto_pix', '').strip()
+    destaque_promocao = 'destaque_promocao' in request.form
+
+    if not categoria:
+        flash('Escolha uma categoria.')
+        return redirect(url_for('admin'))
+
+    shirts = Shirt.query.filter_by(category=categoria).all()
+    for camisa in shirts:
+        if camisa.publicado:
+            dados = dict(camisa.alteracoes_pendentes) if camisa.alteracoes_pendentes else {}
+            if desconto_pix:
+                dados['desconto_pix'] = float(desconto_pix)
+            if destaque_promocao:
+                dados['destaque_promocao'] = True
+            camisa.alteracoes_pendentes = dados
+        else:
+            if desconto_pix:
+                camisa.desconto_pix = float(desconto_pix)
+            if destaque_promocao:
+                camisa.destaque_promocao = True
+
+    db.session.commit()
+    flash(f'{len(shirts)} camisa(s) da categoria "{categoria}" marcada(s).')
+    return redirect(url_for('admin'))
+
+
+@app.route('/admin/remover-promocao/<int:id>', methods=['POST'])
+@login_required
+def remover_promocao(id):
+    shirt = Shirt.query.get_or_404(id)
+    if shirt.publicado:
+        dados = dict(shirt.alteracoes_pendentes) if shirt.alteracoes_pendentes else {}
+        dados['destaque_promocao'] = False
+        shirt.alteracoes_pendentes = dados
+    else:
+        shirt.destaque_promocao = False
+    db.session.commit()
+    flash(f'"{shirt.title}" marcada para sair da promoção (fica pendente até você publicar).')
+    return redirect(url_for('admin'))
+
 
 # Rota para filtrar camisas por categoria
 @app.route('/categoria/<string:nome_categoria>')
