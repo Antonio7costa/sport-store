@@ -224,7 +224,7 @@ def consultar_promocoes(limite=10):
 
 # Ordem de preferência das categorias na home; qualquer categoria nova cadastrada
 # no admin aparece automaticamente no fim, em ordem alfabética.
-ORDEM_CATEGORIAS_HOME = ['Brasileiros', 'Internacionais', 'Feminino', 'Manga Longa']
+ORDEM_CATEGORIAS_HOME = ['Brasileiros', 'Internacionais', 'Feminino', 'Manga Longa', 'Regatas']
 
 
 def categorias_para_home():

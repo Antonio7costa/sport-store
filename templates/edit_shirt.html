@@ -43,6 +43,7 @@
                         <option value="Internacionais" {% if dados_exibicao.category == 'Internacionais' %}selected{% endif %}>Internacionais</option>
                         <option value="Feminino" {% if dados_exibicao.category == 'Feminino' %}selected{% endif %}>Feminino</option>
                         <option value="Manga Longa" {% if dados_exibicao.category == 'Manga Longa' %}selected{% endif %}>Manga Longa</option>
+                        <option value="Regatas" {% if dados_exibicao.category == 'Regatas' %}selected{% endif %}>Regatas</option>
                     </select>
                 </div>
                 <input type="text" name="price" value="{{ dados_exibicao.price }}" placeholder="Preço" required class="border p-2 rounded">
