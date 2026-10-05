@@ -56,6 +56,11 @@
                     <label class="block text-xs font-bold uppercase text-slate-400 mb-1">Desconto à vista / PIX (%)</label>
                     <input type="number" step="0.1" min="0" max="100" name="desconto_pix" value="{{ dados_exibicao.desconto_pix }}" class="w-full bg-slate-950 border border-slate-800 p-2.5 rounded-xl text-white text-sm focus:border-emerald-500 outline-none">
                 </div>
+                <div>
+                    <label class="block text-xs font-bold uppercase text-slate-400 mb-1">Preço à vista / PIX (R$) — opcional</label>
+                    <input type="text" name="preco_pix_manual" value="{{ dados_exibicao.preco_pix_manual or '' }}" placeholder="Ex: R$ 129,90" class="w-full bg-slate-950 border border-slate-800 p-2.5 rounded-xl text-white text-sm focus:border-emerald-500 outline-none">
+                    <span class="text-[10px] text-slate-500 block mt-1">Se preencher, a porcentagem ao lado é ignorada. Deixe vazio para usar a porcentagem.</span>
+                </div>
                 <label class="flex items-center gap-2 text-xs font-bold text-slate-600 md:col-span-2">
                     <input type="checkbox" name="destaque_promocao" {% if dados_exibicao.destaque_promocao %}checked{% endif %} class="w-4 h-4 accent-emerald-500">
                     Destacar na seção "Promoções" da home

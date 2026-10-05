@@ -90,6 +90,7 @@ class Shirt(db.Model):
     category = db.Column(db.String(50), nullable=True)
     price = db.Column(db.String(20), nullable=False)
     desconto_pix = db.Column(db.Float, default=10.0, nullable=False)
+    preco_pix_manual = db.Column(db.String(20), nullable=True)
     destaque_promocao = db.Column(db.Boolean, default=False, nullable=False)
     publicado = db.Column(db.Boolean, default=True, nullable=False)
     alteracoes_pendentes = db.Column(db.JSON, nullable=True)
@@ -138,16 +139,40 @@ def formata_real(val):
     return f"R$ {val:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.')
 
 
-def montar_shirt_dict(shirt):
-    preco_limpo = shirt.price.replace('R$', '').replace('.', '').replace(',', '.').strip()
+def parse_valor(texto):
+    if not texto:
+        return 0.0
+    limpo = texto.replace('R$', '').strip()
+    if ',' in limpo:
+        limpo = limpo.replace('.', '').replace(',', '.')   # 1.490,90 -> 1490.90
+    elif '.' in limpo and len(limpo.rsplit('.', 1)[1]) <= 2:
+        pass                                               # 149.90 -> ponto decimal
+    else:
+        limpo = limpo.replace('.', '')                     # 1.490 -> milhar
     try:
-        valor_numerico = float(preco_limpo)
+        return float(limpo)
     except ValueError:
-        valor_numerico = 0.0
+        return 0.0
 
-    desconto_pix = shirt.desconto_pix if shirt.desconto_pix is not None else 10.0
-    preco_pix = valor_numerico * (1 - desconto_pix / 100)
-    parcela_5x = valor_numerico / 5 if valor_numerico > 0 else 0.0
+
+def normaliza_preco(texto):
+    valor = parse_valor(texto)
+    return formata_real(valor) if valor > 0 else (texto or '')
+
+
+def montar_shirt_dict(shirt):
+    valor_numerico = parse_valor(shirt.price)
+    pix_manual = parse_valor(shirt.preco_pix_manual)
+
+    if pix_manual > 0 and 0 < pix_manual < valor_numerico:
+        preco_pix = pix_manual
+        desconto_pix = (1 - pix_manual / valor_numerico) * 100
+    else:
+        desconto_pix = shirt.desconto_pix if shirt.desconto_pix is not None else 10.0
+        preco_pix = valor_numerico * (1 - desconto_pix / 100)
+
+    parcela_4x = valor_numerico / 4 if valor_numerico > 0 else 0.0
+    economia_pix = max(valor_numerico - preco_pix, 0.0)
 
     estoque_tamanhos = {
         'P': shirt.stock_p,
@@ -162,10 +187,12 @@ def montar_shirt_dict(shirt):
         'id': shirt.id,
         'title': shirt.title,
         'category': shirt.category,
-        'price': shirt.price,
+        'price': formata_real(valor_numerico) if valor_numerico > 0 else shirt.price,
         'preco_pix': formata_real(preco_pix),
+        'economia_pix': formata_real(economia_pix),
+        'tem_desconto': economia_pix >= 0.01,
         'desconto_pix': desconto_pix,
-        'parcela_5x': formata_real(parcela_5x),
+        'parcela_4x': formata_real(parcela_4x),
         'image_url': shirt.images[0].image_url if shirt.images else '',
         'images': shirt.images,
         'estoque': estoque_tamanhos,
@@ -297,9 +324,10 @@ def admin():
     if request.method == 'POST':
         title = request.form.get('title')
         category = request.form.get('category')
-        price = request.form.get('price')
+        price = normaliza_preco(request.form.get('price'))
         ordem = int(request.form.get('ordem', 0) or 0)
         desconto_pix = float(request.form.get('desconto_pix', 10) or 10)
+        preco_pix_manual = normaliza_preco(request.form.get('preco_pix_manual')) or None
         destaque_promocao = request.form.get('destaque_promocao') == 'on'
 
         stock_p = int(request.form.get('stock_p', 0) or 0)
@@ -314,6 +342,7 @@ def admin():
             price=price,
             ordem=ordem,
             desconto_pix=desconto_pix,
+            preco_pix_manual=preco_pix_manual,
             destaque_promocao=destaque_promocao,
             publicado=False,
             stock_p=stock_p,
@@ -373,9 +402,10 @@ def edit_shirt(id):
         novos_dados = {
             'title': request.form.get('title'),
             'category': request.form.get('category'),
-            'price': request.form.get('price'),
+            'price': normaliza_preco(request.form.get('price')),
             'ordem': int(request.form.get('ordem', 0) or 0),
             'desconto_pix': float(request.form.get('desconto_pix', 10) or 10),
+            'preco_pix_manual': normaliza_preco(request.form.get('preco_pix_manual')) or None,
             'destaque_promocao': request.form.get('destaque_promocao') == 'on',
             'stock_p': int(request.form.get('stock_p', 0) or 0),
             'stock_m': int(request.form.get('stock_m', 0) or 0),
@@ -410,6 +440,7 @@ def edit_shirt(id):
         'price': shirt.price,
         'ordem': shirt.ordem,
         'desconto_pix': shirt.desconto_pix,
+        'preco_pix_manual': shirt.preco_pix_manual,
         'destaque_promocao': shirt.destaque_promocao,
         'stock_p': shirt.stock_p,
         'stock_m': shirt.stock_m,
@@ -450,6 +481,8 @@ def publicar():
 @login_required
 def aplicar_categoria():
     categoria = request.form.get('categoria', '').strip()
+    preco = request.form.get('preco', '').strip()
+    preco_pix_manual = request.form.get('preco_pix_manual', '').strip()
     desconto_pix = request.form.get('desconto_pix', '').strip()
     destaque_promocao = 'destaque_promocao' in request.form
 
@@ -457,20 +490,44 @@ def aplicar_categoria():
         flash('Escolha uma categoria.')
         return redirect(url_for('admin'))
 
+    if preco and parse_valor(preco) <= 0:
+        flash('Preço parcelado inválido.')
+        return redirect(url_for('admin'))
+    if preco_pix_manual and parse_valor(preco_pix_manual) <= 0:
+        flash('Preço no PIX inválido.')
+        return redirect(url_for('admin'))
+    if preco and preco_pix_manual and parse_valor(preco_pix_manual) >= parse_valor(preco):
+        flash('O preço no PIX precisa ser menor que o preço parcelado.')
+        return redirect(url_for('admin'))
+
+    mudancas = {}
+    if preco:
+        mudancas['price'] = normaliza_preco(preco)
+    if preco_pix_manual:
+        mudancas['preco_pix_manual'] = normaliza_preco(preco_pix_manual)
+    elif desconto_pix:
+        try:
+            mudancas['desconto_pix'] = float(desconto_pix.replace(',', '.'))
+        except ValueError:
+            flash('Desconto inválido.')
+            return redirect(url_for('admin'))
+        mudancas['preco_pix_manual'] = None   # a porcentagem passa a valer
+    if destaque_promocao:
+        mudancas['destaque_promocao'] = True
+
+    if not mudancas:
+        flash('Preencha pelo menos um campo para aplicar.')
+        return redirect(url_for('admin'))
+
     shirts = Shirt.query.filter_by(category=categoria).all()
     for camisa in shirts:
         if camisa.publicado:
             dados = dict(camisa.alteracoes_pendentes) if camisa.alteracoes_pendentes else {}
-            if desconto_pix:
-                dados['desconto_pix'] = float(desconto_pix)
-            if destaque_promocao:
-                dados['destaque_promocao'] = True
+            dados.update(mudancas)
             camisa.alteracoes_pendentes = dados
         else:
-            if desconto_pix:
-                camisa.desconto_pix = float(desconto_pix)
-            if destaque_promocao:
-                camisa.destaque_promocao = True
+            for campo, valor in mudancas.items():
+                setattr(camisa, campo, valor)
 
     db.session.commit()
     flash(f'{len(shirts)} camisa(s) da categoria "{categoria}" marcada(s).')

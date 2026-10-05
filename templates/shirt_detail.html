@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://dfynyrphuroowpuygnkg.supabase.co"crossorigin>
     <meta property="og:type" content="product">
     <meta property="og:title" content="{{ shirt.title }} | Sport Store">
-    <meta property="og:description" content="{{ shirt.preco_pix }} no PIX ou 5x de {{ shirt.parcela_5x }} sem juros">
+    <meta property="og:description" content="{{ shirt.preco_pix }} no PIX ou 4x de {{ shirt.parcela_4x }} sem juros">
     {% if shirt.images %}<meta property="og:image" content="{{ shirt.images[0].image_url }}">{% endif %}
 </head>
 
@@ -119,16 +119,18 @@
                             <span class="text-2xl sm:text-3xl md:text-4xl font-black text-emerald-400 tracking-tight">
                                 {{ shirt.preco_pix }}
                             </span>
+                            {% if shirt.tem_desconto %}
                             <span class="bg-emerald-500/10 text-emerald-400 text-[10px] md:text-xs font-black uppercase px-2 py-0.5 md:px-2.5 md:py-1 rounded-md border border-emerald-500/20">
-                                {{ shirt.desconto_pix|round|int }}% OFF no PIX
+                                {{ shirt.economia_pix }} OFF no PIX ({{ shirt.desconto_pix|round|int }}%)
                             </span>
+                            {% endif %}
                         </div>
                         <div class="text-xs md:text-sm font-medium text-slate-300 mt-1">
                             Preço normal: <span class="line-through text-slate-400 font-semibold">{{ shirt.price }}</span>
                         </div>
                         <div class="text-[11px] md:text-xs font-semibold text-slate-300 mt-2.5 pt-2.5 border-t border-slate-800/80 flex items-center gap-1.5">
                             <span class="text-emerald-400">{{ icone('card', 'w-4 h-4') }}</span>
-                            <span>Ou em até <span class="text-white font-bold">5x de {{ shirt.parcela_5x }}</span> sem juros</span>
+                            <span>Ou em até <span class="text-white font-bold">4x de {{ shirt.parcela_4x }}</span> sem juros</span>
                         </div>
                     </div>
 
