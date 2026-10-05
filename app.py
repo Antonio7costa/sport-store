@@ -62,6 +62,16 @@ def adicionar_cache_estatico(resp):
         resp.headers['Cache-Control'] = 'public, max-age=31536000, immutable'
     return resp
 
+@app.context_processor
+def inject_asset_version():
+    def asset_url(filename):
+        caminho = os.path.join(app.static_folder, filename)
+        try:
+            versao = int(os.path.getmtime(caminho))
+        except OSError:
+            versao = 0
+        return url_for('static', filename=filename) + f'?v={versao}'
+    return dict(asset_url=asset_url)
 
 login_manager = LoginManager()
 login_manager.init_app(app)

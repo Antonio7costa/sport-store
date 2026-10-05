@@ -8,18 +8,18 @@
 
     <!-- [ALTERADO 1] Antes: <script src="...@tailwindcss/browser@4"></script> (gerava o CSS no navegador, lento).
          Agora: CSS já compilado, servido da pasta static. -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='tailwind.css') }}?v=3">
+    <link rel="stylesheet" href="{{ asset_url('tailwind.css') }}">
     <link rel="preconnect" href="https://dfynyrphuroowpuygnkg.supabase.co" crossorigin>
 </head>
 
 <!-- [ALTERADO 2] Macro com os ícones em SVG (substitui as tags <i class="fa-...">) -->
 {% macro icone(nome, classe='w-4 h-4') -%}
     {%- if nome == 'shirt' -%}
-    <img src="{{ url_for('static', filename='shirt-icon.svg') }}?v=1" alt="" class="{{ classe }}">
+    <img src="{{ asset_url('shirt-icon.svg') }}" alt="" class="{{ classe }}">
     {%- elif nome == 'pin' -%}
     <svg class="{{ classe }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
     {%- elif nome == 'whatsapp' -%}
-    <img src="{{ url_for('static', filename='whatsapp.svg') }}?v=1" alt="WhatsApp" class="{{ classe }}">
+    <img src="{{ asset_url('whatsapp.svg') }}" alt="WhatsApp" class="{{ classe }}">
     {%- elif nome == 'left' -%}
     <svg class="{{ classe }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>
     {%- elif nome == 'right' -%}

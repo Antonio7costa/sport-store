@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ shirt.title }} | FC Catálogo</title>
 
-    <link rel="stylesheet" href="{{ url_for('static', filename='tailwind.css') }}?v=3">
+    <link rel="stylesheet" href="{{ asset_url('tailwind.css') }}">
     <link rel="preconnect" href="https://dfynyrphuroowpuygnkg.supabase.co"crossorigin>
     <meta property="og:type" content="product">
     <meta property="og:title" content="{{ shirt.title }} | Sport Store">
@@ -17,11 +17,11 @@
 {% macro icone(nome, classe='w-4 h-4') -%}
     {%- set base = 'fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" viewBox="0 0 24 24"' -%}
     {%- if nome == 'shirt' -%}
-    <img src="{{ url_for('static', filename='shirt-icon.svg') }}?v=1" alt="" class="{{ classe }}">
+    <img src="{{ asset_url('shirt-icon.svg') }}" alt="" class="{{ classe }}">
     {%- elif nome == 'pin' -%}
     <svg class="{{ classe }}" {{ base|safe }}><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
     {%- elif nome == 'whatsapp' -%}
-    <img src="{{ url_for('static', filename='whatsapp.svg') }}?v=1" alt="WhatsApp" class="{{ classe }}">
+    <img src="{{ asset_url('whatsapp.svg') }}" alt="WhatsApp" class="{{ classe }}">
     {%- elif nome == 'left' -%}
     <svg class="{{ classe }}" {{ base|safe }}><path d="m15 18-6-6 6-6"/></svg>
     {%- elif nome == 'right' -%}
