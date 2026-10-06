@@ -27,9 +27,11 @@
                         <option value="">Selecione uma categoria...</option>
                         <option value="Brasileiros">Brasileiros</option>
                         <option value="Internacionais">Internacionais</option>
+                        <option value="Retrô">Retrô</option>
+                        <option value="Regatas">Regatas</option>
                         <option value="Feminino">Feminino</option>
                         <option value="Manga Longa">Manga Longa</option>
-                        <option value="Regatas">Regatas</option>
+                        <option value="Infantil">Infantil</option>
                     </select>
                 </div>
                 <div>
@@ -53,26 +55,24 @@
                 </label>
                 <div class="md:col-span-2 border p-4 rounded bg-gray-50">
                     <span class="text-sm font-semibold text-slate-700 block mb-3">Quantidade em estoque por tamanho:</span>
-                    <div class="grid grid-cols-5 gap-3">
-                        <div>
-                            <label class="block text-xs font-bold text-gray-600 mb-1">P</label>
-                            <input type="number" name="stock_p" value="0" min="0" class="w-full border p-2 rounded text-center">
+                    <div data-estoque="adulto">
+                        <div class="grid grid-cols-5 gap-3">
+                            {% for tam in ['P', 'M', 'G', 'GG', 'XG'] %}
+                            <div>
+                                <label class="block text-xs font-bold text-gray-600 mb-1">{{ tam }}</label>
+                                <input type="number" name="stock_{{ tam|lower }}" value="0" min="0" class="w-full border p-2 rounded text-center">
+                            </div>
+                            {% endfor %}
                         </div>
-                        <div>
-                            <label class="block text-xs font-bold text-gray-600 mb-1">M</label>
-                            <input type="number" name="stock_m" value="0" min="0" class="w-full border p-2 rounded text-center">
-                        </div>
-                        <div>
-                            <label class="block text-xs font-bold text-gray-600 mb-1">G</label>
-                            <input type="number" name="stock_g" value="0" min="0" class="w-full border p-2 rounded text-center">
-                        </div>
-                        <div>
-                            <label class="block text-xs font-bold text-gray-600 mb-1">GG</label>
-                            <input type="number" name="stock_gg" value="0" min="0" class="w-full border p-2 rounded text-center">
-                        </div>
-                        <div>
-                            <label class="block text-xs font-bold text-gray-600 mb-1">XG</label>
-                            <input type="number" name="stock_xg" value="0" min="0" class="w-full border p-2 rounded text-center">
+                    </div>
+                    <div data-estoque="infantil" class="hidden">
+                        <div class="grid grid-cols-3 sm:grid-cols-6 gap-3">
+                            {% for tam, idade in [('18', '4-5 anos'), ('20', '5-6 anos'), ('22', '6-7 anos'), ('24', '8-9 anos'), ('26', '10-11 anos'), ('28', '12-13 anos')] %}
+                            <div>
+                                <label class="block text-xs font-bold text-gray-600 mb-1">{{ tam }} <span class="font-normal text-gray-400">({{ idade }})</span></label>
+                                <input type="number" name="stock_{{ tam }}" value="0" min="0" class="w-full border p-2 rounded text-center">
+                            </div>
+                            {% endfor %}
                         </div>
                     </div>
                 </div>
@@ -120,12 +120,14 @@
                     <div>
                         <label class="block text-xs font-bold text-gray-400 mb-1">Categoria</label>
                         <select name="categoria" class="bg-slate-950 border border-slate-800 p-2 rounded-lg text-white text-sm">
-                            <option value="">Selecione...</option>
-                            <option value="Brasileiros">Brasileiros</option>
-                            <option value="Internacionais">Internacionais</option>
-                            <option value="Feminino">Feminino</option>
-                            <option value="Manga Longa">Manga Longa</option>
-                            <option value="Regatas">Regatas</option>
+                        <option value="">Selecione...</option>
+                        <option value="Brasileiros">Brasileiros</option>
+                        <option value="Internacionais">Internacionais</option>
+                        <option value="Retrô">Retrô</option>
+                        <option value="Regatas">Regatas</option>
+                        <option value="Feminino">Feminino</option>
+                        <option value="Manga Longa">Manga Longa</option>
+                        <option value="Infantil">Infantil</option>
                         </select>
                     </div>
                     <div>
@@ -210,5 +212,22 @@
             {% endfor %}
         </div>
     </main>
+    <script>
+        document.querySelectorAll('form').forEach(form => {
+            const sel = form.querySelector('select[name="category"]');
+            const adulto = form.querySelector('[data-estoque="adulto"]');
+            const infantil = form.querySelector('[data-estoque="infantil"]');
+            if (!sel || !adulto || !infantil) return;
+            const atualizar = () => {
+                const inf = sel.value === 'Infantil';
+                adulto.classList.toggle('hidden', inf);
+                infantil.classList.toggle('hidden', !inf);
+                adulto.querySelectorAll('input').forEach(i => i.disabled = inf);
+                infantil.querySelectorAll('input').forEach(i => i.disabled = !inf);
+            };
+            sel.addEventListener('change', atualizar);
+            atualizar();
+        });
+    </script>
 </body>
 </html>

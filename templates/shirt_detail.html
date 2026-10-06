@@ -6,7 +6,7 @@
     <title>{{ shirt.title }} | FC Catálogo</title>
 
     <link rel="stylesheet" href="{{ asset_url('tailwind.css') }}">
-    <link rel="preconnect" href="https://dfynyrphuroowpuygnkg.supabase.co"crossorigin>
+    <link rel="preconnect" href="https://dfynyrphuroowpuygnkg.supabase.co" crossorigin>
     <meta property="og:type" content="product">
     <meta property="og:title" content="{{ shirt.title }} | Sport Store">
     <meta property="og:description" content="{{ shirt.preco_pix }} no PIX ou 4x de {{ shirt.parcela_4x }} sem juros">
@@ -152,6 +152,11 @@
                                 {% endif %}
                             {% endfor %}
                         </div>
+                        {% if shirt.idades %}
+                        <p class="text-[11px] text-slate-400 mt-2.5 leading-relaxed">
+                            {% for tam in shirt.todos_tamanhos %}<span class="whitespace-nowrap"><b class="text-slate-300">{{ tam }}</b> = {{ shirt.idades[tam] }}</span>{% if not loop.last %} · {% endif %}{% endfor %}
+                        </p>
+                        {% endif %}         
                     </div>
 
                     <hr class="border-slate-800 mb-5">

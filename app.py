@@ -99,6 +99,12 @@ class Shirt(db.Model):
     stock_g = db.Column(db.Integer, default=0, nullable=False)
     stock_gg = db.Column(db.Integer, default=0, nullable=False)
     stock_xg = db.Column(db.Integer, default=0, nullable=False)
+    stock_18 = db.Column(db.Integer, default=0, nullable=False, server_default='0')
+    stock_20 = db.Column(db.Integer, default=0, nullable=False, server_default='0')
+    stock_22 = db.Column(db.Integer, default=0, nullable=False, server_default='0')
+    stock_24 = db.Column(db.Integer, default=0, nullable=False, server_default='0')
+    stock_26 = db.Column(db.Integer, default=0, nullable=False, server_default='0')
+    stock_28 = db.Column(db.Integer, default=0, nullable=False, server_default='0')
     images = db.relationship('ShirtImage', backref='shirt', cascade='all, delete-orphan', lazy=True)
     
 class ShirtImage(db.Model):
@@ -160,6 +166,23 @@ def normaliza_preco(texto):
     return formata_real(valor) if valor > 0 else (texto or '')
 
 
+TAMANHOS_ADULTO = ['P', 'M', 'G', 'GG', 'XG']
+TAMANHOS_INFANTIL = ['18', '20', '22', '24', '26', '28']
+IDADE_TAMANHO = {
+    '18': '4-5 anos', '20': '5-6 anos', '22': '6-7 anos',
+    '24': '8-9 anos', '26': '10-11 anos', '28': '12-13 anos',
+}
+COLUNA_ESTOQUE = {
+    'P': 'stock_p', 'M': 'stock_m', 'G': 'stock_g', 'GG': 'stock_gg', 'XG': 'stock_xg',
+    **{t: f'stock_{t}' for t in TAMANHOS_INFANTIL},
+}
+COLUNAS_ESTOQUE = list(COLUNA_ESTOQUE.values())
+
+
+def tamanhos_da_categoria(categoria):
+    return TAMANHOS_INFANTIL if categoria == 'Infantil' else TAMANHOS_ADULTO
+
+
 def montar_shirt_dict(shirt):
     valor_numerico = parse_valor(shirt.price)
     pix_manual = parse_valor(shirt.preco_pix_manual)
@@ -174,14 +197,9 @@ def montar_shirt_dict(shirt):
     parcela_4x = valor_numerico / 4 if valor_numerico > 0 else 0.0
     economia_pix = max(valor_numerico - preco_pix, 0.0)
 
-    estoque_tamanhos = {
-        'P': shirt.stock_p,
-        'M': shirt.stock_m,
-        'G': shirt.stock_g,
-        'GG': shirt.stock_gg,
-        'XG': shirt.stock_xg
-    }
-    disponiveis = [tamanho for tamanho, qtd in estoque_tamanhos.items() if qtd > 0]
+    todos_tamanhos = tamanhos_da_categoria(shirt.category)
+    estoque_tamanhos = {tam: getattr(shirt, COLUNA_ESTOQUE[tam]) for tam in todos_tamanhos}
+    disponiveis = [tam for tam, qtd in estoque_tamanhos.items() if qtd > 0]
 
     return {
         'id': shirt.id,
@@ -196,7 +214,8 @@ def montar_shirt_dict(shirt):
         'image_url': shirt.images[0].image_url if shirt.images else '',
         'images': shirt.images,
         'estoque': estoque_tamanhos,
-        'todos_tamanhos': ['P', 'M', 'G', 'GG', 'XG'],
+        'todos_tamanhos': todos_tamanhos,
+        'idades': IDADE_TAMANHO if shirt.category == 'Infantil' else {},
         'disponiveis': disponiveis
     }
 
@@ -208,7 +227,7 @@ def destaque_efetivo(shirt):
 
 
 def consultar_catalogo(categoria=None, limite=None, excluir_ids=None):
-    estoque_total = (Shirt.stock_p + Shirt.stock_m + Shirt.stock_g + Shirt.stock_gg + Shirt.stock_xg)
+    estoque_total = sum(getattr(Shirt, col) for col in COLUNAS_ESTOQUE)
 
     query = Shirt.query.options(selectinload(Shirt.images)).filter_by(publicado=True)
     if categoria:
@@ -232,7 +251,7 @@ def consultar_catalogo(categoria=None, limite=None, excluir_ids=None):
 
 
 def consultar_promocoes(limite=10):
-    estoque_total = (Shirt.stock_p + Shirt.stock_m + Shirt.stock_g + Shirt.stock_gg + Shirt.stock_xg)
+    estoque_total = sum(getattr(Shirt, col) for col in COLUNAS_ESTOQUE)
 
     query = Shirt.query.options(selectinload(Shirt.images)).filter_by(destaque_promocao=True, publicado=True)
     query = query.order_by(
@@ -251,7 +270,7 @@ def consultar_promocoes(limite=10):
 
 # Ordem de preferência das categorias na home; qualquer categoria nova cadastrada
 # no admin aparece automaticamente no fim, em ordem alfabética.
-ORDEM_CATEGORIAS_HOME = ['Brasileiros', 'Internacionais', 'Feminino', 'Manga Longa', 'Regatas']
+ORDEM_CATEGORIAS_HOME = ['Brasileiros', 'Internacionais', 'Retrô', 'Regatas', 'Feminino', 'Manga Longa', 'Infantil']
 
 
 def categorias_para_home():
@@ -262,7 +281,7 @@ def categorias_para_home():
     return ordenadas + extras
 
 
-def montar_secoes_home(por_categoria=10):
+def montar_secoes_home(por_categoria=8):
     secoes = []
 
     promocoes = consultar_promocoes(limite=por_categoria)
@@ -330,11 +349,7 @@ def admin():
         preco_pix_manual = normaliza_preco(request.form.get('preco_pix_manual')) or None
         destaque_promocao = request.form.get('destaque_promocao') == 'on'
 
-        stock_p = int(request.form.get('stock_p', 0) or 0)
-        stock_m = int(request.form.get('stock_m', 0) or 0)
-        stock_g = int(request.form.get('stock_g', 0) or 0)
-        stock_gg = int(request.form.get('stock_gg', 0) or 0)
-        stock_xg = int(request.form.get('stock_xg', 0) or 0)
+        estoques = {col: int(request.form.get(col, 0) or 0) for col in COLUNAS_ESTOQUE}
 
         new_shirt = Shirt(
             title=title,
@@ -345,11 +360,7 @@ def admin():
             preco_pix_manual=preco_pix_manual,
             destaque_promocao=destaque_promocao,
             publicado=False,
-            stock_p=stock_p,
-            stock_m=stock_m,
-            stock_g=stock_g,
-            stock_gg=stock_gg,
-            stock_xg=stock_xg
+            **estoques
         )
         db.session.add(new_shirt)
         db.session.commit()
@@ -407,11 +418,7 @@ def edit_shirt(id):
             'desconto_pix': float(request.form.get('desconto_pix', 10) or 10),
             'preco_pix_manual': normaliza_preco(request.form.get('preco_pix_manual')) or None,
             'destaque_promocao': request.form.get('destaque_promocao') == 'on',
-            'stock_p': int(request.form.get('stock_p', 0) or 0),
-            'stock_m': int(request.form.get('stock_m', 0) or 0),
-            'stock_g': int(request.form.get('stock_g', 0) or 0),
-            'stock_gg': int(request.form.get('stock_gg', 0) or 0),
-            'stock_xg': int(request.form.get('stock_xg', 0) or 0),
+            **{col: int(request.form.get(col, 0) or 0) for col in COLUNAS_ESTOQUE},
         }
 
         urls_texto = request.form.get('image_urls', '')
@@ -442,11 +449,7 @@ def edit_shirt(id):
         'desconto_pix': shirt.desconto_pix,
         'preco_pix_manual': shirt.preco_pix_manual,
         'destaque_promocao': shirt.destaque_promocao,
-        'stock_p': shirt.stock_p,
-        'stock_m': shirt.stock_m,
-        'stock_g': shirt.stock_g,
-        'stock_gg': shirt.stock_gg,
-        'stock_xg': shirt.stock_xg,
+        **{col: getattr(shirt, col) for col in COLUNAS_ESTOQUE},
     }
     if shirt.alteracoes_pendentes:
         dados_exibicao.update(shirt.alteracoes_pendentes)

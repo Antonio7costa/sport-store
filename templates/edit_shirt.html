@@ -41,9 +41,11 @@
                         <option value="" {% if not dados_exibicao.category %}selected{% endif %}>Selecione uma categoria...</option>
                         <option value="Brasileiros" {% if dados_exibicao.category == 'Brasileiros' %}selected{% endif %}>Brasileiros</option>
                         <option value="Internacionais" {% if dados_exibicao.category == 'Internacionais' %}selected{% endif %}>Internacionais</option>
+                        <option value="Retrô" {% if dados_exibicao.category == 'Retrô' %}selected{% endif %}>Retrô</option>
+                        <option value="Regatas" {% if dados_exibicao.category == 'Regatas' %}selected{% endif %}>Regatas</option>
                         <option value="Feminino" {% if dados_exibicao.category == 'Feminino' %}selected{% endif %}>Feminino</option>
                         <option value="Manga Longa" {% if dados_exibicao.category == 'Manga Longa' %}selected{% endif %}>Manga Longa</option>
-                        <option value="Regatas" {% if dados_exibicao.category == 'Regatas' %}selected{% endif %}>Regatas</option>
+                        <option value="Infantil" {% if dados_exibicao.category == 'Infantil' %}selected{% endif %}>Infantil</option>
                     </select>
                 </div>
                 <input type="text" name="price" value="{{ dados_exibicao.price }}" placeholder="Preço" required class="border p-2 rounded">
@@ -67,26 +69,24 @@
                 </label>
                 <div class="md:col-span-2 border p-4 rounded bg-gray-50">
                     <span class="text-sm font-semibold text-slate-700 block mb-3">Quantidade em estoque por tamanho:</span>
-                    <div class="grid grid-cols-5 gap-3">
-                        <div>
-                            <label class="block text-xs font-bold text-gray-600 mb-1">P</label>
-                            <input type="number" name="stock_p" value="{{ dados_exibicao.stock_p }}" min="0" class="w-full border p-2 rounded text-center">
+                    <div data-estoque="adulto">
+                        <div class="grid grid-cols-5 gap-3">
+                            {% for tam in ['P', 'M', 'G', 'GG', 'XG'] %}
+                            <div>
+                                <label class="block text-xs font-bold text-gray-600 mb-1">{{ tam }}</label>
+                                <input type="number" name="stock_{{ tam|lower }}" value="{{ dados_exibicao['stock_' ~ tam|lower] }}" min="0" class="w-full border p-2 rounded text-center">
+                            </div>
+                            {% endfor %}
                         </div>
-                        <div>
-                            <label class="block text-xs font-bold text-gray-600 mb-1">M</label>
-                            <input type="number" name="stock_m" value="{{ dados_exibicao.stock_m }}" min="0" class="w-full border p-2 rounded text-center">
-                        </div>
-                        <div>
-                            <label class="block text-xs font-bold text-gray-600 mb-1">G</label>
-                            <input type="number" name="stock_g" value="{{ dados_exibicao.stock_g }}" min="0" class="w-full border p-2 rounded text-center">
-                        </div>
-                        <div>
-                            <label class="block text-xs font-bold text-gray-600 mb-1">GG</label>
-                            <input type="number" name="stock_gg" value="{{ dados_exibicao.stock_gg }}" min="0" class="w-full border p-2 rounded text-center">
-                        </div>
-                        <div>
-                            <label class="block text-xs font-bold text-gray-600 mb-1">XG</label>
-                            <input type="number" name="stock_xg" value="{{ dados_exibicao.stock_xg }}" min="0" class="w-full border p-2 rounded text-center">
+                    </div>
+                    <div data-estoque="infantil" class="hidden">
+                        <div class="grid grid-cols-3 sm:grid-cols-6 gap-3">
+                            {% for tam, idade in [('18', '4-5 anos'), ('20', '5-6 anos'), ('22', '6-7 anos'), ('24', '8-9 anos'), ('26', '10-11 anos'), ('28', '12-13 anos')] %}
+                            <div>
+                                <label class="block text-xs font-bold text-gray-600 mb-1">{{ tam }} <span class="font-normal text-gray-400">({{ idade }})</span></label>
+                                <input type="number" name="stock_{{ tam }}" value="{{ dados_exibicao['stock_' ~ tam] }}" min="0" class="w-full border p-2 rounded text-center">
+                            </div>
+                            {% endfor %}
                         </div>
                     </div>
                 </div>
@@ -98,5 +98,22 @@
             </form>
         </div>
     </main>
+    <script>
+        document.querySelectorAll('form').forEach(form => {
+            const sel = form.querySelector('select[name="category"]');
+            const adulto = form.querySelector('[data-estoque="adulto"]');
+            const infantil = form.querySelector('[data-estoque="infantil"]');
+            if (!sel || !adulto || !infantil) return;
+            const atualizar = () => {
+                const inf = sel.value === 'Infantil';
+                adulto.classList.toggle('hidden', inf);
+                infantil.classList.toggle('hidden', !inf);
+                adulto.querySelectorAll('input').forEach(i => i.disabled = inf);
+                infantil.querySelectorAll('input').forEach(i => i.disabled = !inf);
+            };
+            sel.addEventListener('change', atualizar);
+            atualizar();
+        });
+    </script>
 </body>
 </html>

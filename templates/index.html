@@ -27,7 +27,7 @@
     {%- endif -%}
 {%- endmacro %}
 
-{% macro cartao_camisa(shirt) %}
+{% macro cartao_camisa(shirt, eager=False) %}
 <div class="h-full bg-slate-900 border border-slate-800 rounded-xl shadow-lg overflow-hidden flex flex-col group hover:border-emerald-500/50 transition-all duration-300">
 
     <div class="relative block overflow-hidden aspect-square bg-slate-950 group/img">
@@ -38,7 +38,7 @@
                  alt="{{ shirt.title }}"
                  width="400" height="400"
                  decoding="async"
-                 loading="lazy"
+                 loading="{{ 'eager' if eager else 'lazy' }}"
                  class="w-full h-full object-cover group-hover/img:scale-105 transition-transform duration-500 {% if not shirt.disponiveis %}brightness-50 grayscale{% endif %}">
             {% endif %}
         </a>
@@ -160,6 +160,8 @@
     {% else %}
         <!-- Home: prévias por categoria -->
         {% for secao in secoes %}
+        {% set secao_idx = loop.index %}
+        {% set link_todos = url_for('ver_promocoes') if secao.nome == 'Promoções' else url_for('filtrar_categoria', nome_categoria=secao.nome) %}
         <section class="flex flex-col gap-3 {% if not loop.first %}pt-4 border-t border-slate-800/70{% endif %}">
             <div class="flex items-center justify-between px-1">
                 <h2 class="text-lg sm:text-xl font-black uppercase italic text-white">{{ secao.nome }}</h2>
@@ -170,9 +172,18 @@
                 <div id="scroll-{{ secao.nome|replace(' ', '-') }}" class="flex gap-2.5 sm:gap-4 overflow-x-auto scroll-smooth snap-x snap-mandatory scrollbar-none pb-1">
                     {% for shirt in secao.shirts %}
                     <div class="w-[44%] sm:w-[30%] md:w-[22%] lg:w-[18%] shrink-0 snap-start">
-                        {{ cartao_camisa(shirt) }}
+                        {{ cartao_camisa(shirt, secao_idx <= 2 and loop.index <= 6) }}
                     </div>
                     {% endfor %}
+                    <div class="w-[44%] sm:w-[30%] md:w-[22%] lg:w-[18%] shrink-0 snap-start">
+                        <a href="{{ link_todos }}" class="h-full min-h-[220px] flex flex-col items-center justify-center gap-2 text-center p-3 bg-slate-900 border border-dashed border-slate-700 hover:border-emerald-500/60 rounded-xl text-emerald-400 hover:text-white transition group">
+                            <span class="w-10 h-10 rounded-full bg-emerald-500 text-slate-950 flex items-center justify-center group-hover:scale-110 transition">
+                                {{ icone('right', 'w-4 h-4') }}
+                            </span>
+                            <span class="text-xs sm:text-sm font-black uppercase italic tracking-wide">Ver todos</span>
+                            <span class="text-[9px] sm:text-[10px] text-slate-400 uppercase tracking-wider">{{ secao.nome }}</span>
+                        </a>
+                    </div>                  
                 </div>
 
                 <button type="button" aria-label="Ver mais camisas à esquerda" onclick="rolarSecao('scroll-{{ secao.nome|replace(' ', '-') }}', -1)" class="hidden sm:flex absolute -left-3 top-1/2 -translate-y-1/2 bg-slate-900 hover:bg-emerald-500 hover:text-slate-950 text-white w-8 h-8 rounded-full items-center justify-center border border-slate-700 shadow-lg z-10 cursor-pointer">
