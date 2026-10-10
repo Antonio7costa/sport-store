@@ -118,6 +118,10 @@
 
 
 <body class="bg-slate-950 text-slate-100 font-sans min-h-screen flex flex-col selection:bg-emerald-500 selection:text-white">
+    <!-- Faixa de frete grátis -->
+    <div class="bg-emerald-500 text-slate-950 text-[11px] sm:text-xs font-black uppercase tracking-wider text-center px-3 py-1.5">
+        Frete grátis para todo o Brasil
+    </div>
 
     <!-- Header Esportivo -->
     <header class="bg-slate-900 border-b border-slate-800 sticky top-0 z-50 shadow-lg">
@@ -135,12 +139,48 @@
 
     <!-- Conteúdo Principal Compacto -->
     <main class="w-full max-w-7xl mx-auto px-2 sm:px-4 py-4 md:py-6 flex-1 flex flex-col gap-4">
-        <div class="flex justify-between items-center border-b border-slate-800 pb-3 px-1">
-            <div>
-                <h2 class="text-lg sm:text-2xl font-black uppercase italic tracking-tight text-white">Camisas Disponíveis</h2>
-                <p class="text-[10px] sm:text-xs text-slate-400 uppercase tracking-widest">Linha Tailandesa 1:1</p>
-            </div>
+
+        <!-- Título da página (home e categorias) -->
+        <div class="border-b border-slate-800 pb-3 px-1">
+            <h2 class="text-lg sm:text-2xl font-black uppercase italic tracking-tight text-white">Camisas Disponíveis</h2>
         </div>
+
+        {% if not categoria_atual %}
+        <!-- Mural da home -->
+        <section class="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div class="md:col-span-2 rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-4 sm:p-7 flex items-center justify-between gap-3">
+                <div class="flex flex-col gap-2">
+                    <span class="text-[10px] sm:text-xs font-black uppercase tracking-widest text-emerald-400">Camisas tailandesas 1:1</span>
+                    <h1 class="text-2xl sm:text-4xl font-black uppercase italic leading-tight text-white">
+                        Frete grátis <span class="text-emerald-400">para todo o Brasil</span>
+                    </h1>
+                    <p class="hidden sm:block text-sm text-slate-300">PIX com desconto ou 4x sem juros.</p>
+                </div>
+                <a href="https://wa.me/5532984543471?text={{ 'Olá! Vim pelo site e quero saber sobre as camisas.'|urlencode }}"
+                   target="_blank" rel="noopener" aria-label="Chamar no WhatsApp"
+                   class="shrink-0 bg-emerald-500 hover:bg-emerald-400 text-slate-950 w-12 h-12 sm:w-14 sm:h-14 rounded-full flex items-center justify-center transition">
+                    {{ icone('whatsapp', 'w-6 h-6 sm:w-7 sm:h-7') }}
+                </a>
+            </div>
+
+            <div class="rounded-2xl border border-slate-800 bg-slate-900 p-4 sm:p-5 flex flex-col justify-center gap-1.5">
+                <span class="flex items-center gap-1.5 text-emerald-400 text-[10px] font-black uppercase tracking-widest">
+                    {{ icone('pin', 'w-3.5 h-3.5') }} São João del-Rei e região
+                </span>
+                <p class="text-sm font-bold text-white">Envio em até 24h úteis</p>
+                <p class="text-xs text-slate-400">Retirada ou entrega combinada pelo WhatsApp.</p>
+            </div>
+        </section>
+
+        {% if secoes %}
+        <!-- Atalhos com os títulos das categorias -->
+        <nav class="flex gap-2 overflow-x-auto scrollbar-none pb-1" aria-label="Categorias">
+            {% for secao in secoes %}
+            <a href="#secao-{{ secao.nome|replace(' ', '-') }}" class="shrink-0 bg-slate-900 border border-slate-800 hover:border-emerald-500/60 text-slate-200 hover:text-emerald-400 text-xs font-bold uppercase tracking-wider px-3 py-1.5 rounded-full transition">{{ secao.nome }}</a>
+            {% endfor %}
+        </nav>
+        {% endif %}
+        {% endif %}
 
         {% if categoria_atual %}
         <!-- Página de uma categoria específica (destino do "Ver todos") -->
@@ -157,15 +197,15 @@
             </div>
             {% endfor %}
         </div>
-    {% else %}
+        {% else %}
         <!-- Home: prévias por categoria -->
         {% for secao in secoes %}
         {% set secao_idx = loop.index %}
         {% set link_todos = url_for('ver_promocoes') if secao.nome == 'Promoções' else url_for('filtrar_categoria', nome_categoria=secao.nome) %}
-        <section class="flex flex-col gap-3 {% if not loop.first %}pt-4 border-t border-slate-800/70{% endif %}">
+        <section id="secao-{{ secao.nome|replace(' ', '-') }}" class="flex flex-col gap-3 scroll-mt-20 {% if not loop.first %}pt-4 border-t border-slate-800/70{% endif %}">
             <div class="flex items-center justify-between px-1">
                 <h2 class="text-lg sm:text-xl font-black uppercase italic text-white">{{ secao.nome }}</h2>
-                <a href="{{ url_for('ver_promocoes') if secao.nome == 'Promoções' else url_for('filtrar_categoria', nome_categoria=secao.nome) }}" class="text-emerald-400 hover:text-white text-xs font-bold uppercase tracking-wider transition shrink-0">Ver todos →</a>
+                <a href="{{ link_todos }}" class="text-emerald-400 hover:text-white text-xs font-bold uppercase tracking-wider transition shrink-0">Ver todos →</a>
             </div>
 
             <div class="relative">
@@ -183,7 +223,7 @@
                             <span class="text-xs sm:text-sm font-black uppercase italic tracking-wide">Ver todos</span>
                             <span class="text-[9px] sm:text-[10px] text-slate-400 uppercase tracking-wider">{{ secao.nome }}</span>
                         </a>
-                    </div>                  
+                    </div>
                 </div>
 
                 <button type="button" aria-label="Ver mais camisas à esquerda" onclick="rolarSecao('scroll-{{ secao.nome|replace(' ', '-') }}', -1)" class="hidden sm:flex absolute -left-3 top-1/2 -translate-y-1/2 bg-slate-900 hover:bg-emerald-500 hover:text-slate-950 text-white w-8 h-8 rounded-full items-center justify-center border border-slate-700 shadow-lg z-10 cursor-pointer">
@@ -200,7 +240,7 @@
             <p class="text-slate-400 font-semibold uppercase tracking-wider text-xs">Nenhuma camisa cadastrada.</p>
         </div>
         {% endfor %}
-    {% endif %}
+        {% endif %}
     </main>
 
     <!-- Footer com Endereço -->
@@ -229,11 +269,11 @@
         const indicesAtuaisCatalogo = {};
 
         function rolarSecao(id, direcao) {
-        const container = document.getElementById(id);
-        if (!container) return;
-        const primeiroCard = container.querySelector(':scope > div');
-        const largura = primeiroCard ? primeiroCard.offsetWidth + 16 : 300;
-        container.scrollBy({ left: direcao * largura * 2, behavior: 'smooth' });
+            const container = document.getElementById(id);
+            if (!container) return;
+            const primeiroCard = container.querySelector(':scope > div');
+            const largura = primeiroCard ? primeiroCard.offsetWidth + 16 : 300;
+            container.scrollBy({ left: direcao * largura * 2, behavior: 'smooth' });
         }
 
         function mudarFotoCatalogo(shirtId, direcao) {
